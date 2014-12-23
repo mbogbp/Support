@@ -5,52 +5,53 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using DevExpress.EasyTest.Framework;
+using XpandTestExecutor.Module.BusinessObjects;
 
-namespace XpandTestExecutor{
+namespace XpandTestExecutor.Module {
     public class AppConfigUpdater {
-        
-        public static void Update(string fileName, string configPath, EasyTest easyTest) {
+
+        public static void Update(string fileName, string configPath, EasyTestExecutionInfo easyTestExecutionInfo) {
             using (var optionsStream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read)) {
                 Options options = Options.LoadOptions(optionsStream, null, null, configPath);
-                UpdateAppConfigFiles(easyTest, options);
+                UpdateAppConfigFiles(easyTestExecutionInfo, options);
             }
         }
-        private static void UpdateAppConfigFiles(EasyTest easyTest, Options options) {
-            var user = easyTest.Users.Last();
-            if (user.Name!=null){
-                foreach (var alias in options.Aliases.Cast<TestAlias>().Where(@alias => alias.ContainsAppPath())){
+        private static void UpdateAppConfigFiles(EasyTestExecutionInfo easyTestExecutionInfo, Options options) {
+            var user = easyTestExecutionInfo.WindowsUser;
+            if (user.Name != null) {
+                foreach (var alias in options.Aliases.Cast<TestAlias>().Where(@alias => alias.ContainsAppPath())) {
                     var sourcePath = Path.GetFullPath(alias.UpdateAppPath(null));
-                    if (Directory.Exists(sourcePath)){
+                    if (Directory.Exists(sourcePath)) {
                         var destPath = Path.GetFullPath(alias.UpdateAppPath(user.Name));
-                        DirectoryCopy(sourcePath, destPath, true, sourcePath + @"\" + Program.EasyTestUsersDir);
-                        UpdateAppConfig(easyTest, options, alias, user);
+                        DirectoryCopy(sourcePath, destPath, true, sourcePath + @"\" + TestRunner.EasyTestUsersDir);
+                        UpdateAppConfig(easyTestExecutionInfo, options, alias, user);
                     }
                 }
             }
-            UpdateAdditionalApps(easyTest, options, user);
+            UpdateAdditionalApps(easyTestExecutionInfo, options, user);
         }
 
-        public static void UpdateAdditionalApps(EasyTest easyTest, Options options, User user){
-            var additionalApps =options.Applications.Cast<TestApplication>()
+        public static void UpdateAdditionalApps(EasyTestExecutionInfo easyTestExecutionInfo, Options options, WindowsUser windowsUser) {
+            var additionalApps = options.Applications.Cast<TestApplication>()
                     .SelectMany(application => application.AdditionalAttributes)
                     .Where(attribute => attribute.LocalName == "AdditionalApplications")
                     .Select(attribute => attribute.Value);
-            foreach (var additionalApp in additionalApps){
+            foreach (var additionalApp in additionalApps) {
                 var path = Path.Combine(Path.GetDirectoryName(additionalApp) + "", Path.GetFileName(additionalApp) + ".config");
                 var document = XDocument.Load(path);
-                UpdateAppConfigCore(easyTest, options, user, document);
+                UpdateAppConfigCore(easyTestExecutionInfo, options, windowsUser, document);
                 document.Save(path);
             }
         }
 
-        private static void UpdateConnectionStrings(User user, Options options, XDocument document) {
+        private static void UpdateConnectionStrings(WindowsUser windowsUser, Options options, XDocument document) {
             foreach (TestDatabase testDatabase in options.TestDatabases) {
                 var database = testDatabase.DefaultDBName();
                 var connectionStrings = document.Descendants("connectionStrings").SelectMany(element => element.Descendants())
                     .Where(element => element.Attribute("connectionString").Value.ToLowerInvariant().Contains(database.ToLowerInvariant())).Select(element
                         => element.Attribute("connectionString"));
-                foreach (var connectionString in connectionStrings){
-                    string userNameSuffix = user.Name!=null?"_" + user.Name:null;
+                foreach (var connectionString in connectionStrings) {
+                    string userNameSuffix = windowsUser.Name != null ? "_" + windowsUser.Name : null;
                     connectionString.Value = Regex.Replace(connectionString.Value,
                         @"(.*)(" + database + @"[^;""\s]*)(.*)", "$1" + database + userNameSuffix + "$3",
                         RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Multiline);
@@ -87,7 +88,7 @@ namespace XpandTestExecutor{
 
         private static XElement GetAppSettingsElement(XDocument document) {
             Debug.Assert(document.Root != null, "config.Root != null");
-            XElement appSettings = document.Root.Element("appSettings")??new XElement("AppSettings");
+            XElement appSettings = document.Root.Element("appSettings") ?? new XElement("AppSettings");
             var element = appSettings.Descendants().FirstOrDefault(node => node.Attribute("key").Value == "EasyTestCommunicationPort");
             if (element == null) {
                 element = new XElement("add");
@@ -113,18 +114,18 @@ namespace XpandTestExecutor{
             return new KeyValuePair<XDocument, string>();
         }
 
-        private static void UpdateAppConfig(EasyTest easyTest, Options options, TestAlias alias, User user) {
+        private static void UpdateAppConfig(EasyTestExecutionInfo easyTestExecutionInfo, Options options, TestAlias alias, WindowsUser windowsUser) {
             var keyValuePair = LoadAppConfig(alias, options.Applications);
             if (File.Exists(keyValuePair.Value)) {
                 var document = keyValuePair.Key;
-                UpdateAppConfigCore(easyTest, options, user, document);
+                UpdateAppConfigCore(easyTestExecutionInfo, options, windowsUser, document);
                 document.Save(keyValuePair.Value);
             }
         }
 
-        private static void UpdateAppConfigCore(EasyTest easyTest, Options options, User user, XDocument document){
-            UpdatePort(easyTest.WinPort, document);
-            UpdateConnectionStrings(user, options, document);
+        private static void UpdateAppConfigCore(EasyTestExecutionInfo easyTestExecutionInfo, Options options, WindowsUser windowsUser, XDocument document) {
+            UpdatePort(easyTestExecutionInfo.WinPort, document);
+            UpdateConnectionStrings(windowsUser, options, document);
         }
     }
 }

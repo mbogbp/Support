@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Application>
+  <Views>
+    <DetailView Id="EasyTest_DetailView">
+      <Items>
+        <PropertyEditor Id="FileName" OpenPathWithExplorer="True" />
+      </Items>
+    </DetailView>
+    <DetailView Id="EasyTestExecutionInfo_DetailView">
+      <Items>
+        <PropertyEditor Id="TestsLog" PropertyEditorType="Xpand.ExpressApp.Win.PropertyEditors.RichEdit.RichEditWinPropertyEditor">
+          <RichEdit HighLightExtension="xml" ControlBindingProperty="ControlText" ShowToolBars="False" />
+        </PropertyEditor>
+      </Items>
+    </DetailView>
+    <ListView Id="ExecutionInfo_ListView">
+    </ListView>
+  </Views>
+</Application>
