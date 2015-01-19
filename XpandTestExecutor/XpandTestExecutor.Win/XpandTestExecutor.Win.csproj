@@ -141,6 +141,9 @@
     <Reference Include="DevExpress.Xpo.v14.2">
       <SpecificVersion>False</SpecificVersion>
     </Reference>
+    <Reference Include="DevExpress.Charts.v14.2.Core">
+      <SpecificVersion>False</SpecificVersion>
+    </Reference>
     <Reference Include="DevExpress.XtraCharts.v14.2">
       <SpecificVersion>False</SpecificVersion>
     </Reference>
