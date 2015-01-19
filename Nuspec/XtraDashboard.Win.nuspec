@@ -16,7 +16,6 @@
     <dependencies>
       <dependency id="eXpandDashboard" version="14.2.3.2" />
       <dependency id="eXpandLib" version="14.2.3.2" />
-      <dependency id="eXpandSecurity" version="14.2.3.2" />
       <dependency id="eXpandSecurityWin" version="14.2.3.2" />
       <dependency id="eXpandSystemWin" version="14.2.3.2" />
       <dependency id="Fasterflect" version="2.1.3" />
