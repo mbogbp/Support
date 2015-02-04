@@ -115,11 +115,14 @@ namespace XpandTestExecutor.Module.BusinessObjects {
         }
 
         public int FinishedEasyTests() {
+            Tracing.Tracer.LogSeparator("FinishedEasyTests");
             var passed = PassedEasyTestExecutionInfos.Select(info => info.EasyTest).Distinct().Count();
             var retries = ((IModelOptionsTestExecutor)CaptionHelper.ApplicationModel.Options).ExecutionRetries;
-            var failed = EasyTestExecutionInfos.Except(PassedEasyTestExecutionInfos).Where(info => 
-                info.State==EasyTestState.Failed).GroupBy(info => info.EasyTest).Count(infos => 
+            var failed = EasyTestExecutionInfos.Except(PassedEasyTestExecutionInfos).Where(info =>
+                info.State == EasyTestState.Failed).GroupBy(info => info.EasyTest).Count(infos =>
                     infos.Count() == retries + 1);
+            Tracing.Tracer.LogValue("passed", passed);
+            Tracing.Tracer.LogValue("failed", failed);
             return failed + passed;
         }
 
