@@ -126,6 +126,12 @@ namespace XpandTestExecutor.Module.BusinessObjects {
             get { return ((ISupportSequenceObject)EasyTest).Sequence.ToString(CultureInfo.InvariantCulture); }
         }
 
+        public bool IsTimeOut{
+            get{
+                return State==EasyTestState.Running&&DateTime.Now.Subtract(Start).TotalMinutes > EasyTest.Options.DefaultTimeout;
+            }
+        }
+
         public void SetView(bool win, Image view) {
             if (win)
                 WinView = view;

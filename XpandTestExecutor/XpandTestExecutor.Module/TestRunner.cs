@@ -26,6 +26,7 @@ namespace XpandTestExecutor.Module {
             }
         }
 
+        static readonly Dictionary<Guid, Process> Processes = new Dictionary<Guid, Process>();
         private static void RunTest(Guid easyTestKey, IDataLayer dataLayer, bool isSystem) {
             Process process = null;
             lock (Locker) {
@@ -41,6 +42,7 @@ namespace XpandTestExecutor.Module {
                             StartInfo = processStartInfo
                         };
                         process.Start();
+                        Processes[easyTestKey]=process;
                         lastEasyTestExecutionInfo = unitOfWork.GetObjectByKey<EasyTestExecutionInfo>(lastEasyTestExecutionInfo.Oid, true);
                         lastEasyTestExecutionInfo.Update(EasyTestState.Running);
                         unitOfWork.ValidateAndCommitChanges();
@@ -63,18 +65,14 @@ namespace XpandTestExecutor.Module {
                 easyTest.LastEasyTestExecutionInfo.Update(EasyTestState.Failed);
                 easyTest.Session.ValidateAndCommitChanges();
                 var directoryName = Path.GetDirectoryName(easyTest.FileName) + "";
-                string fileName = Path.Combine(directoryName, "config.xml");
-                using (var optionsStream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-                    Options options = Options.LoadOptions(optionsStream, null, null, directoryName);
-                    var logTests = new LogTests();
-                    foreach (var application in options.Applications.Cast<TestApplication>()) {
-                        var logTest = new LogTest { ApplicationName = application.Name, Result = "Failed" };
-                        var logError = new LogError { Message = { Text = e.ToString() } };
-                        logTest.Errors.Add(logError);
-                        logTests.Tests.Add(logTest);
-                    }
-                    logTests.Save(Path.Combine(directoryName, "TestsLog.xml"));
+                var logTests = new LogTests();
+                foreach (var application in easyTest.Options.Applications.Cast<TestApplication>()) {
+                    var logTest = new LogTest { ApplicationName = application.Name, Result = "Failed" };
+                    var logError = new LogError { Message = { Text = e.ToString() } };
+                    logTest.Errors.Add(logError);
+                    logTests.Tests.Add(logTest);
                 }
+                logTests.Save(Path.Combine(directoryName, "TestsLog.xml"));
             }
             Tracing.Tracer.LogError(e);
         }
@@ -143,12 +141,16 @@ namespace XpandTestExecutor.Module {
             var objectSpace = ApplicationHelper.Instance.Application.CreateObjectSpace();
             var easyTests = EasyTest.GetTests(objectSpace, fileNames);
             objectSpace.Session().ValidateAndCommitChanges();
+            foreach (var easyTest in easyTests) {
+                Processes.Add(easyTest.Oid,null);
+            }
             return easyTests;
         }
 
         public static CancellationTokenSource Execute(EasyTest[] easyTests, bool isSystem, Action<Task> continueWith) {
             Tracing.Tracer.LogValue("EasyTests.Count", easyTests.Count());
             if (easyTests.Any()) {
+                TestEnviroment.KillProcessAsUser();
                 var tokenSource = new CancellationTokenSource();
                 Task.Factory.StartNew(() => ExecuteCore(easyTests, isSystem,  tokenSource.Token),tokenSource.Token).ContinueWith(continueWith, tokenSource.Token).TimeoutAfter(1000 * 60 * 60);
                 Thread.Sleep(100);
@@ -159,15 +161,13 @@ namespace XpandTestExecutor.Module {
 
         private static void ExecuteCore(EasyTest[] easyTests, bool isSystem, CancellationToken token) {
             var dataLayer = GetDatalayer();
-            var tasks = new List<Task>();
             var executionInfoKey = CreateExecutionInfoKey(dataLayer, isSystem, easyTests);
             do {
                 if (token.IsCancellationRequested)
                     return;
                 var easyTest = GetNextEasyTest(executionInfoKey, easyTests, dataLayer, isSystem);
                 if (easyTest != null) {
-                    var task = Task.Factory.StartNew(() => RunTest(easyTest.Oid, dataLayer, isSystem), token);
-                    tasks.Add(task);
+                    Task.Factory.StartNew(() => RunTest(easyTest.Oid, dataLayer, isSystem), token).TimeoutAfter(easyTest.Options.DefaultTimeout*60*1000);
                 }
                 Thread.Sleep(10000);
             } while (!ExecutionFinished(dataLayer, executionInfoKey, easyTests.Length));
@@ -198,6 +198,13 @@ namespace XpandTestExecutor.Module {
         private static EasyTest GetNextEasyTest(Guid executionInfoKey, EasyTest[] easyTests, IDataLayer dataLayer, bool isSystem) {
             using (var unitOfWork = new UnitOfWork(dataLayer)) {
                 var executionInfo = unitOfWork.GetObjectByKey<ExecutionInfo>(executionInfoKey);
+                var timeOutInfos = executionInfo.EasyTestExecutionInfos.Where(info => info.IsTimeOut);
+                foreach (var timeOutInfo in timeOutInfos) {
+                    var process = Processes[timeOutInfo.EasyTest.Oid];
+                    process.Kill();
+                    Thread.Sleep(2000);
+                }
+
                 easyTests = easyTests.Select(test => unitOfWork.GetObjectByKey<EasyTest>(test.Oid)).ToArray();
 
                 var runningInfosCount = executionInfo.EasyTestRunningInfos.Count();
@@ -228,6 +235,7 @@ namespace XpandTestExecutor.Module {
             }
             return null;
         }
+
 
         private static EasyTest GetEasyTest(IEnumerable<EasyTest> easyTests, ExecutionInfo executionInfo, int i) {
             return executionInfo.GetTestsToExecute(i).FirstOrDefault(easyTests.Contains);

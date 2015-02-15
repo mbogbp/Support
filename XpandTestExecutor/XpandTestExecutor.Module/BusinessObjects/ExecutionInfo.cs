@@ -91,7 +91,7 @@ namespace XpandTestExecutor.Module.BusinessObjects {
                 var neverRunEasyTests = GetNeverRunEasyTests().Select(test => new { Test = test, Duration = test.LastPassedDuration() });
                 return neverRunEasyTests.Select(arg => arg.Test).ToArray();
             }
-            return EasyTestExecutionInfos.GroupBy(executionInfo => executionInfo.EasyTest)
+            return EasyTestExecutionInfos.GroupBy(executionInfo => executionInfo.EasyTest).ToArray()
                     .Where(infos => infos.All(info => info.State == EasyTestState.Failed) && infos.Count() == retries)
                     .Select(infos => new { Test = infos.Key, Count = infos.Count() })
                     .OrderBy(arg => arg.Count)

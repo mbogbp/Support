@@ -28,8 +28,7 @@ namespace XpandTestExecutor.Module.BusinessObjects {
             var fileName = Path.Combine(directoryName, "testslog.xml");
             using (var optionsStream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read)) {
                 return LogTests.LoadTestsResults(optionsStream).Tests.Where(test
-                    => test != null && test.Name.ToLowerInvariant() == (Path.GetFileNameWithoutExtension(FileName) + "").ToLowerInvariant()).Where(test
-                        => test.Result != "Passed").ToArray();
+                    => test != null ).Where(test => test.Result != "Passed").ToArray();
             }
         }
 
@@ -92,13 +91,23 @@ namespace XpandTestExecutor.Module.BusinessObjects {
             get { return null; }
         }
 
+        public Options Options{
+            get{
+                var directoryName = Path.GetDirectoryName(FileName) + "";
+                string fileName = Path.Combine(directoryName, "config.xml");
+                using (var optionsStream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read)){
+                    return Options.LoadOptions(optionsStream, null, null, directoryName);
+                }
+            }
+        }
+
         public void CreateExecutionInfo(bool useCustomPort, ExecutionInfo executionInfo, WindowsUser windowsUser = null) {
             _lastEasyTestExecutionInfo = new EasyTestExecutionInfo(Session) {
                 ExecutionInfo = executionInfo,
                 EasyTest = this,
                 WinPort = 4100,
                 WebPort = 4030,
-                WindowsUser = windowsUser
+                WindowsUser = windowsUser,
             };
             _lastEasyTestExecutionInfo.CreateApplications(Path.GetDirectoryName(FileName));
             if (useCustomPort) {
@@ -135,11 +144,7 @@ namespace XpandTestExecutor.Module.BusinessObjects {
                 string name = fileName;
                 var easyTest = objectSpace.FindObject<EasyTest>(test => test.FileName == name) ?? objectSpace.CreateObject<EasyTest>();
                 easyTest.FileName = fileName;
-                var configPath = Path.Combine(Path.GetDirectoryName(fileName) + "", "config.xml");
-                using (var optionsStream = new FileStream(configPath, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-                    var options = Options.LoadOptions(optionsStream, null, null, Path.GetDirectoryName(configPath));
-                    easyTest.Application = options.Applications.Cast<TestApplication>().Select(application => application.Name.Replace(".Win", "").Replace(".Web", "")).First();
-                }
+                easyTest.Application = easyTest.Options.Applications.Cast<TestApplication>().Select(application => application.Name.Replace(".Win", "").Replace(".Web", "")).First();
                 easyTests[index] = easyTest;
             }
             var array = easyTests.OrderByDescending(test => test.LastPassedDuration()).ToArray();

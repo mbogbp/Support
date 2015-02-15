@@ -145,6 +145,13 @@ namespace XpandTestExecutor.Module {
             return userName;
         }
 
+        public static void KillProcessAsUser() {
+            var processes = Process.GetProcesses().Where(process => process.ProcessName.Contains("ProcessAsUser")).ToArray();
+            foreach (var process in processes) {
+                process.Kill();
+            }
+        }
+
         public static void LogOffAllUsers(string[] users){
             IntPtr server = IntPtr.Zero;
             try{
@@ -157,6 +164,7 @@ namespace XpandTestExecutor.Module {
                 WTSCloseServer(server);
             }
         }
+
 
         public static void KillWebDev(string name) {
             KillProccesses(name, i => Process.GetProcessById(i).ProcessName.StartsWith("WebDev.WebServer40"));
