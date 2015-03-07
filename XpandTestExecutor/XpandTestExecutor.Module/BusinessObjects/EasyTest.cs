@@ -26,10 +26,13 @@ namespace XpandTestExecutor.Module.BusinessObjects {
         public LogTest[] GetFailedLogTests() {
             var directoryName = Path.GetDirectoryName(FileName) + "";
             var fileName = Path.Combine(directoryName, "testslog.xml");
-            using (var optionsStream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-                return LogTests.LoadTestsResults(optionsStream).Tests.Where(test
-                    => test != null ).Where(test => test.Result != "Passed").ToArray();
+            if (File.Exists(fileName)) {
+                using (var optionsStream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+                    return LogTests.LoadTestsResults(optionsStream).Tests.Where(test
+                        => test != null ).Where(test => test.Result != "Passed").ToArray();
+                }
             }
+            return new LogTest[0];
         }
 
         public override string ToString() {
@@ -95,9 +98,10 @@ namespace XpandTestExecutor.Module.BusinessObjects {
             get{
                 var directoryName = Path.GetDirectoryName(FileName) + "";
                 string fileName = Path.Combine(directoryName, "config.xml");
-                using (var optionsStream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read)){
-                    return Options.LoadOptions(optionsStream, null, null, directoryName);
-                }
+                var optionsStream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
+                var options = Options.LoadOptions(optionsStream, null, null, directoryName);
+                optionsStream.Close();
+                return options;
             }
         }
 
