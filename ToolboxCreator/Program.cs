@@ -57,9 +57,15 @@ namespace Xpand.ToolboxCreator {
             }
             DeleteXpandEntries(registryKeys,s => !s.Contains(version.ToString()) );
 
-            var openSubKey = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\" + wow + @"Microsoft\VisualStudio\11.0\", true);
-            Debug.Assert(openSubKey != null, "openSubKey != null");
-            openSubKey.SetValue("ConfigurationChanged", DateTime.Now.ToFileTime(), RegistryValueKind.QWord);
+            foreach (var vsVersion in new[]{"10","11"}){
+                NotifyVS(wow, vsVersion);
+            }
+        }
+
+        private static void NotifyVS(string wow, string vsVersion){
+            var openSubKey =Registry.LocalMachine.OpenSubKey(@"SOFTWARE\" + wow + @"Microsoft\VisualStudio\" + vsVersion + @".0\", true);
+            if (openSubKey != null)
+                openSubKey.SetValue("ConfigurationChanged", DateTime.Now.ToFileTime(), RegistryValueKind.QWord);
         }
 
         static void CreateAssemblyFoldersKey(string wow) {
