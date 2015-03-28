@@ -17,7 +17,7 @@ using XpandTestExecutor.Module.BusinessObjects;
 namespace XpandTestExecutor.Module {
     public class TestRunner {
         public const string EasyTestUsersDir = "EasyTestUsers";
-        private static readonly object Locker = new object();
+        private static readonly object _locker = new object();
 
         private static bool ExecutionFinished(IDataLayer dataLayer, Guid executionInfoKey, int testsCount) {
             using (var unitOfWork = new UnitOfWork(dataLayer)) {
@@ -29,10 +29,10 @@ namespace XpandTestExecutor.Module {
             }
         }
 
-        static readonly Dictionary<Guid, Process> Processes = new Dictionary<Guid, Process>();
+        static readonly Dictionary<Guid, Process> _processes = new Dictionary<Guid, Process>();
         private static void RunTest(Guid easyTestKey, IDataLayer dataLayer, bool isSystem) {
             Process process = null;
-            lock (Locker) {
+            lock (_locker) {
                 using (var unitOfWork = new UnitOfWork(dataLayer)) {
                     var easyTest = unitOfWork.GetObjectByKey<EasyTest>(easyTestKey, true);
                     try {
@@ -45,7 +45,7 @@ namespace XpandTestExecutor.Module {
                             StartInfo = processStartInfo
                         };
                         process.Start();
-                        Processes[easyTestKey]=process;
+                        _processes[easyTestKey]=process;
                         lastEasyTestExecutionInfo = unitOfWork.GetObjectByKey<EasyTestExecutionInfo>(lastEasyTestExecutionInfo.Oid, true);
                         lastEasyTestExecutionInfo.Update(EasyTestState.Running);
                         unitOfWork.ValidateAndCommitChanges();
@@ -64,7 +64,7 @@ namespace XpandTestExecutor.Module {
         }
 
         private static void LogErrors(EasyTest easyTest, Exception e) {
-            lock (Locker) {
+            lock (_locker) {
                 var directoryName = Path.GetDirectoryName(easyTest.FileName) + "";
                 var logTests = new LogTests();
                 foreach (var application in easyTest.Options.Applications.Cast<TestApplication>()) {
@@ -94,7 +94,7 @@ namespace XpandTestExecutor.Module {
         }
 
         private static void AfterProcessExecute(IDataLayer dataLayer, Guid easyTestKey) {
-            lock (Locker) {
+            lock (_locker) {
                 using (var unitOfWork = new UnitOfWork(dataLayer)) {
                     var easyTest = unitOfWork.GetObjectByKey<EasyTest>(easyTestKey, true);
                     var directoryName = Path.GetDirectoryName(easyTest.FileName) + "";
@@ -144,9 +144,9 @@ namespace XpandTestExecutor.Module {
             var objectSpace = ApplicationHelper.Instance.Application.CreateObjectSpace();
             var easyTests = EasyTest.GetTests(objectSpace, fileNames);
             objectSpace.Session().ValidateAndCommitChanges();
-            Processes.Clear();
+            _processes.Clear();
             foreach (var easyTest in easyTests) {
-                Processes.Add(easyTest.Oid,null);
+                _processes.Add(easyTest.Oid,null);
             }
             return easyTests;
         }
@@ -174,7 +174,7 @@ namespace XpandTestExecutor.Module {
                     return;
                 var easyTest = GetNextEasyTest(executionInfoKey, easyTests, dataLayer, isSystem);
                 if (easyTest != null) {
-                    Task.Factory.StartNew(() => RunTest(easyTest.Oid, dataLayer, isSystem), token);
+                    Task.Factory.StartNew(() => RunTest(easyTest.Oid, dataLayer, isSystem), token).TimeoutAfter(easyTest.Options.DefaultTimeout);
                 }
                 Thread.Sleep(10000);
             } while (!ExecutionFinished(dataLayer, executionInfoKey, easyTests.Length));
@@ -208,7 +208,7 @@ namespace XpandTestExecutor.Module {
                 var timeOutInfos = executionInfo.EasyTestExecutionInfos.Where(info => info.IsTimeOut);
                 foreach (var timeOutInfo in timeOutInfos) {
                     LogErrors(timeOutInfo.EasyTest,new TimeoutException("EasyTest (" +timeOutInfo.EasyTest.Name+ ") TimeOut"));
-                    var process = Processes[timeOutInfo.EasyTest.Oid];
+                    var process = _processes[timeOutInfo.EasyTest.Oid];
                     process.Kill();
                     Thread.Sleep(2000);
                 }
