@@ -174,7 +174,7 @@ namespace XpandTestExecutor.Module {
                     return;
                 var easyTest = GetNextEasyTest(executionInfoKey, easyTests, dataLayer, isSystem);
                 if (easyTest != null) {
-                    Task.Factory.StartNew(() => RunTest(easyTest.Oid, dataLayer, isSystem), token).TimeoutAfter(easyTest.Options.DefaultTimeout);
+                    Task.Factory.StartNew(() => RunTest(easyTest.Oid, dataLayer, isSystem), token).TimeoutAfter(easyTest.Options.DefaultTimeout*60*1000);
                 }
                 Thread.Sleep(10000);
             } while (!ExecutionFinished(dataLayer, executionInfoKey, easyTests.Length));
