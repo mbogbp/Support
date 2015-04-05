@@ -18,6 +18,9 @@ namespace ProcessAsUser {
         [ParserState]
         public IParserState LastParserState { get; set; }
 
+        [Option('t', "timeout", Required = true, HelpText = "timeout in millisec")]
+        public int Timeout { get; set; }
+
         [HelpOption]
         public string GetUsage() {
             return HelpText.AutoBuild(this,current => HelpText.DefaultParsingErrorsHandler(this, current));

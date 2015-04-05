@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Security.Principal;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using CommandLine;
+using Xpand.Utils.Threading;
 
 namespace ProcessAsUser{
     internal class Program{
@@ -20,7 +22,7 @@ namespace ProcessAsUser{
                 var processAsUser = new ProcessAsUser(options);
                 if (windowsIdentity.IsSystem){
                     try{
-                        Application.Run(new RDClient(processAsUser));
+                        Task.Factory.StartNew(() => Application.Run(new RDClient(processAsUser))).TimeoutAfter(options.Timeout);
                     }
                     catch (ObjectDisposedException){
                     }

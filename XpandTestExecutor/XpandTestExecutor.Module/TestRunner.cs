@@ -81,7 +81,7 @@ namespace XpandTestExecutor.Module {
         }
         private static ProcessStartInfo GetProcessStartInfo(EasyTest easyTest, WindowsUser user, bool isSystem) {
             string testExecutor = string.Format("TestExecutor.v{0}.exe", AssemblyInfo.VersionShort);
-            var arguments = isSystem ? string.Format("-e " + testExecutor + " -u {0} -p {1} -a {2}", user.Name, user.Password, Path.GetFileName(easyTest.FileName)) : Path.GetFileName(easyTest.FileName);
+            var arguments = isSystem ? string.Format("-e " + testExecutor + " -u {0} -p {1} -a {2} -t {3}", user.Name, user.Password, Path.GetFileName(easyTest.FileName), easyTest.Options.DefaultTimeout*60*1000) : Path.GetFileName(easyTest.FileName);
             string directoryName = Path.GetDirectoryName(easyTest.FileName) + "";
             var exe = isSystem ? "ProcessAsUser.exe" : testExecutor;
             var processStartInfo = new ProcessStartInfo(Path.Combine(directoryName, exe), arguments) {
