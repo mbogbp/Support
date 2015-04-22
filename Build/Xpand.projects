@@ -88,7 +88,13 @@
 					Xpand\Xpand.ExpressApp.Modules\MemberLevelSecurity.Win\Xpand.ExpressApp.MemberLevelSecurity.Win.csproj;
                     Xpand\Xpand.Persistent\Xpand.Persistent.BaseImpl\Xpand.Persistent.BaseImpl.csproj;
 					Xpand\Xpand.ExpressApp.Modules\JobScheduler.Jobs\Xpand.ExpressApp.JobScheduler.Jobs.csproj;"/>
-	<NHProjects Include="Xpand\Xpand.NH\Xpand.NH.sln"/>
+	<NHProjects Include="
+					Xpand\Xpand.NH\Xpand.ExpressApp.NH.Core\Xpand.ExpressApp.NH.Core.csproj;
+					Xpand\Xpand.NH\Xpand.ExpressApp.NH\Xpand.ExpressApp.NH.csproj;
+					Xpand\Xpand.NH\Xpand.ExpressApp.NH.DataLayer\Xpand.ExpressApp.NH.DataLayer.csproj;
+					Xpand\Xpand.NH\Xpand.ExpressApp.NH.BaseImpl\Xpand.ExpressApp.NH.BaseImpl.csproj;
+					Xpand\Xpand.NH\NHibernateService\Xpand.ExpressApp.NH.Service.csproj;
+					Xpand\Xpand.NH\Xpand.NH.sln"/>
     <DemoSolutions Include="
 					Demos\EFDemoCodeFirst\EFDemoCodeFirst.sln;
 					Demos\FeatureCenter\FeatureCenterVS2010.sln;

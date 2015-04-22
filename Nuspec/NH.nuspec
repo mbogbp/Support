@@ -13,7 +13,9 @@
     <copyright>eXpandFramework.com</copyright>
     <tags>DevExpress, eXpand, XAF, eXpressApp</tags>
     <projectUrl>http://www.expandframework.com/#AVC</projectUrl>
-    <dependencies />
+    <dependencies>
+      <dependency id="eXpandNHibernateCore" version="14.2.6.4" />
+    </dependencies>
   </metadata>
   <files>
     <file src="\Build\Temp\Xpand.ExpressApp.NH.dll" target="lib\net40\Xpand.ExpressApp.NH.dll" />
