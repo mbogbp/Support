@@ -36,6 +36,7 @@ namespace FixReferences {
             if (IsApplicationProject(document)) {
                 AddRequiredReferences(document, file);
             }
+            UpdateProjectReferences(document,file);
             UpdateReferences(document, directoryName, file);
             UpdateNugetTargets(document, file);
             UpdateConfig(file);
@@ -52,6 +53,20 @@ namespace FixReferences {
                 File.Delete(combine);
 
             UpdateVs2010Compatibility(document, file);
+        }
+
+        private void UpdateProjectReferences(XDocument document, string file){
+            var xpandProjectReferences = document.Descendants().Where(element => element.Name.LocalName == "ProjectReference" && Path.GetFileName(element.Attribute("Include").Value).StartsWith("Xpand.")).ToArray();
+            var references = document.Descendants().Where(xElement => xElement.Name.LocalName=="Reference").Select(element => element.Parent).First();
+            foreach (var element in xpandProjectReferences){
+                var referenceElement = new XElement(XNamespace + "Reference");
+                var value = Path.GetFileNameWithoutExtension(element.Attribute("Include").Value);
+                referenceElement.Add(new XAttribute("Include", value));
+                references.Add(referenceElement);
+                element.Remove();
+            }
+            if (xpandProjectReferences.Any())
+                DocumentHelper.Save(document, file);
         }
 
         private void UpdateNugetTargets(XDocument document, string file){
