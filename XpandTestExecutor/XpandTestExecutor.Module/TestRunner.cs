@@ -24,7 +24,7 @@ namespace XpandTestExecutor.Module {
                 var executionInfo = unitOfWork.GetObjectByKey<ExecutionInfo>(executionInfoKey, true);
                 var ret = executionInfo.FinishedEasyTests() == testsCount;
                 if (ret)
-                    Tracing.Tracer.LogText("ExecutionFinished");
+                    Tracing.Tracer.LogText("ExecutionFinished for Seq "+executionInfo.Sequence);
                 return ret;
             }
         }

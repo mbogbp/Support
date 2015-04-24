@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Security.Principal;
-using System.Threading.Tasks;
+using System.Threading;
 using System.Windows.Forms;
 using CommandLine;
-using Xpand.Utils.Threading;
+using Xpand.Utils.Helpers;
 
 namespace ProcessAsUser{
     internal class Program{
@@ -21,8 +21,13 @@ namespace ProcessAsUser{
                 Debug.Assert(windowsIdentity != null, "windowsIdentity != null");
                 var processAsUser = new ProcessAsUser(options);
                 if (windowsIdentity.IsSystem){
-                    try{
-                        Task.Factory.StartNew(() => Application.Run(new RDClient(processAsUser))).TimeoutAfter(options.Timeout);
+                    try {
+                        var tokenSource = options.Timeout.Execute(() => {
+                            Trace.TraceInformation("TIMEOUT");
+                            Environment.Exit(0);
+                        });
+                        Application.Run(new RDClient(processAsUser));
+                        tokenSource.Cancel();
                     }
                     catch (ObjectDisposedException){
                     }
@@ -37,5 +42,6 @@ namespace ProcessAsUser{
                 throw new ArgumentException(message);
             }
         }
+
     }
 }
