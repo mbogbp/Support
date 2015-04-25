@@ -11,6 +11,7 @@ using DevExpress.ExpressApp.Xpo;
 using DevExpress.Persistent.Base;
 using DevExpress.Xpo;
 using Xpand.Persistent.Base.General;
+using Xpand.Utils.Helpers;
 using Xpand.Utils.Threading;
 using XpandTestExecutor.Module.BusinessObjects;
 
@@ -111,7 +112,7 @@ namespace XpandTestExecutor.Module {
                     }
                     easyTest.LastEasyTestExecutionInfo.Update(state);
                     easyTest.Session.ValidateAndCommitChanges();
-                    TestEnviroment.LogOffUser(easyTest.LastEasyTestExecutionInfo.WindowsUser.Name);
+                    EnviromentEx.LogOffUser(easyTest.LastEasyTestExecutionInfo.WindowsUser.Name);
                 }
             }
         }
@@ -190,7 +191,7 @@ namespace XpandTestExecutor.Module {
             using (var unitOfWork = new UnitOfWork(dataLayer)) {
                 var executionInfo = ExecutionInfo.Create(unitOfWork, isSystem);
                 if (isSystem)
-                    TestEnviroment.LogOffAllUsers(executionInfo.WindowsUsers.Select(user => user.Name).ToArray());
+                    EnviromentEx.LogOffAllUsers(executionInfo.WindowsUsers.Select(user => user.Name).ToArray());
                 easyTests = easyTests.Select(test => unitOfWork.GetObjectByKey<EasyTest>(test.Oid)).ToArray();
                 foreach (var easyTest in easyTests) {
                     easyTest.CreateExecutionInfo(isSystem, executionInfo);
