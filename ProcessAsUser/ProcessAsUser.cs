@@ -175,7 +175,7 @@ namespace ProcessAsUser {
             SessionInfo sessionInfo = GetSessionInfo(userName);
             if (sessionInfo.Info != null) {
                 IntPtr userToken = GetUserToken(sessionInfo.Info.Value);
-                Trace.TraceInformation("UserToken=" + userToken);
+                Program.Logger.Info("UserToken=" + userToken);
                 CreateProcess(userToken);
                 CloseHandle(userToken);
                 WTSFreeMemory(sessionInfo.IntPtr);

@@ -10,6 +10,7 @@ using MSTSCLib;
 namespace ProcessAsUser {
     public partial class RDClient : Form {
         private readonly ProcessAsUser _processAsUser;
+        private CancellationTokenSource _cancellationTokenSource;
 
         public RDClient() {
             InitializeComponent();
@@ -19,10 +20,20 @@ namespace ProcessAsUser {
             _processAsUser = processAsUser;
             Load += OnLoad;
             rdp.OnLoginComplete+=RdpOnOnLoginComplete;
+            rdp.OnLogonError+=RdpOnOnLogonError;
+        }
+
+        private void RdpOnOnLogonError(object sender, IMsTscAxEvents_OnLogonErrorEvent msTscAxEventsOnLogonErrorEvent){
+            Program.Logger.Error("Logon Error");
+            CancelWaitForExit();
+        }
+
+        private void CancelWaitForExit(){
+            if (_cancellationTokenSource != null) _cancellationTokenSource.Cancel();
         }
 
         private void RdpOnOnLoginComplete(object sender, EventArgs eventArgs){
-            Trace.TraceInformation("LoginComplete");
+            Program.Logger.Info("LoginComplete");
             Task task = Task.Factory.StartNew(() =>{
                 var stopwatch = new Stopwatch();
                 stopwatch.Start();
@@ -33,13 +44,15 @@ namespace ProcessAsUser {
                 }
             });
             Task.WaitAll(task);
-            _processAsUser.CreateProcess();
+            var createProcess = _processAsUser.CreateProcess();
+            Program.Logger.Info("CreateProcess="+createProcess);
+            CancelWaitForExit();
             Close();
         }
 
         private void OnLoad(object sender, EventArgs eventArgs){
             bool sessionExists = _processAsUser.SessionExists();
-            Trace.TraceInformation("SessionExists=" + sessionExists);
+            Program.Logger.Info("SessionExists=" + sessionExists);
             if (!sessionExists)
                 Connect(_processAsUser.Options.UserName, _processAsUser.Options.Password);
             else{
@@ -60,6 +73,7 @@ namespace ProcessAsUser {
             var secured = (IMsTscNonScriptable)rdp.GetOcx();
             secured.ClearTextPassword = password;
             rdp.Connect();
+            _cancellationTokenSource = Program.ExitOnTimeout(_processAsUser.Options);
         }
 
         private void button1_Click(object sender, EventArgs e) {

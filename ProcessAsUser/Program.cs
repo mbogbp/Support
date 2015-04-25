@@ -1,33 +1,37 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Security.Principal;
 using System.Threading;
 using System.Windows.Forms;
 using CommandLine;
+using Common.Logging;
 using Xpand.Utils.Helpers;
+using Xpand.Utils.Threading;
 
 namespace ProcessAsUser{
     internal class Program{
+        public static readonly ILog Logger = LogManager.GetLogger<Program>();
         [STAThread]
         internal static void Main(string[] args){
-            Trace.AutoFlush = true;
-            Trace.Listeners.Add(new TextWriterTraceListener("processAsUser.log"));
-            Trace.Listeners.Add(new ConsoleTraceListener());
             var options = new Options();
             bool arguments = Parser.Default.ParseArguments(args, options);
-            Trace.TraceInformation("Arguments parsed="+arguments);
+            Logger.Info("Arguments parsed=" + arguments);
             if (arguments){
                 WindowsIdentity windowsIdentity = WindowsIdentity.GetCurrent();
                 Debug.Assert(windowsIdentity != null, "windowsIdentity != null");
                 var processAsUser = new ProcessAsUser(options);
                 if (windowsIdentity.IsSystem){
-                    try {
-                        var tokenSource = options.Timeout.Execute(() => {
-                            Trace.TraceInformation("TIMEOUT");
-                            Environment.Exit(0);
-                        });
-                        Application.Run(new RDClient(processAsUser));
-                        tokenSource.Cancel();
+                    KillRunningProcesses();
+                    try{
+                        var tokenSource = ExitOnTimeout(options);
+                        using (var rdClient = new RDClient(processAsUser)){
+                            rdClient.Closing += (sender, eventArgs) => {
+                                Logger.Info("Closing");
+                                tokenSource.Cancel();
+                            };
+                            Application.Run(rdClient);
+                        }
                     }
                     catch (ObjectDisposedException){
                     }
@@ -38,10 +42,26 @@ namespace ProcessAsUser{
             }
             else{
                 string message = options.GetUsage();
-                Trace.TraceError(message);
+                Logger.Error(message);
                 throw new ArgumentException(message);
             }
         }
 
+        public static CancellationTokenSource ExitOnTimeout(Options options){
+            var tokenSource = options.Timeout.Execute(() =>{
+                Logger.Info("TIMEOUT");
+                Environment.Exit(0);
+            });
+            return tokenSource;
+        }
+
+        private static void KillRunningProcesses(){
+            var currentProcess = Process.GetCurrentProcess();
+            foreach (var process in currentProcess.GetRunningProcess().ToArray()){
+                var id = process.Id;
+                process.Kill();
+                Logger.Info("Process " + id + " killed");
+            }
+        }
     }
 }

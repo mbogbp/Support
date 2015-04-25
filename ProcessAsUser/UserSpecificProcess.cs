@@ -76,15 +76,15 @@ namespace ProcessAsUser{
                 if (!CreateProcessAsUserW(primayUserToken,null,commandLine,null,null,true,creationFlags,environment,workingDirectory,startupInfo,processInformation)){
                     throw new Win32Exception();
                 }
-                Trace.TraceInformation("-----Process Created-------");
-                Trace.TraceInformation("cmd=" + commandLine);
-                Trace.TraceInformation("hprocess=" + processInformation.hProcess);
+                Program.Logger.Info("-----Process Created-------");
+                Program.Logger.Info("cmd=" + commandLine);
+                Program.Logger.Info("hprocess=" + processInformation.hProcess);
                 var processById = GetProcessById(processInformation.dwProcessId);
                 processById.WaitForExit();
-                Trace.TraceInformation("Process finished");
+                Program.Logger.Info("Process finished");
             }
             catch (Exception e){
-                Trace.TraceError(e.ToString());
+                Program.Logger.Error("Cannot create process",e);
             }
             finally{
 
@@ -101,8 +101,8 @@ namespace ProcessAsUser{
             Encoding encoding = Encoding.GetEncoding(GetConsoleOutputCP());
             var fileStream = new FileStream(new SafeFileHandle(stdoutReadHandle,true), FileAccess.Read,  4096, true);
             var standardOutput = new StreamReader(fileStream, encoding);
-            Trace.TraceInformation("----------------------------------stdOutput----------------------------------");
-            Trace.TraceInformation(standardOutput.ReadToEnd());
+            Program.Logger.Info("----------------------------------stdOutput----------------------------------");
+            Program.Logger.Info(standardOutput.ReadToEnd());
         }
 
 
