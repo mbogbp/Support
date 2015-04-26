@@ -13,7 +13,7 @@ namespace ProcessAsUser{
     internal class Program{
         public static readonly ILog Logger = LogManager.GetLogger<Program>();
         [STAThread]
-        internal static void Main(string[] args){
+        internal static void Main(string[] args) {
             var options = new Options();
             bool arguments = Parser.Default.ParseArguments(args, options);
             Logger.Info("Arguments parsed=" + arguments);
@@ -22,6 +22,7 @@ namespace ProcessAsUser{
                 Debug.Assert(windowsIdentity != null, "windowsIdentity != null");
                 var processAsUser = new ProcessAsUser(options);
                 if (windowsIdentity.IsSystem){
+                    Logger.Info("IsSystem");
                     KillRunningProcesses();
                     try{
                         var tokenSource = ExitOnTimeout(options);
