@@ -33,9 +33,11 @@ namespace XpandTestExecutor.Module {
         static readonly Dictionary<Guid, Process> _processes = new Dictionary<Guid, Process>();
         private static void RunTest(Guid easyTestKey, IDataLayer dataLayer, bool isSystem) {
             Process process = null;
+            int timeout;
             lock (_locker) {
                 using (var unitOfWork = new UnitOfWork(dataLayer)) {
                     var easyTest = unitOfWork.GetObjectByKey<EasyTest>(easyTestKey, true);
+                    timeout = easyTest.Options.DefaultTimeout*60*1000;
                     try {
                         var lastEasyTestExecutionInfo = easyTest.LastEasyTestExecutionInfo;
                         var user = lastEasyTestExecutionInfo.WindowsUser;
@@ -59,7 +61,7 @@ namespace XpandTestExecutor.Module {
                 }
             }
             if (process != null) {
-                process.WaitForExit();
+                process.WaitForExit(timeout);
                 AfterProcessExecute(dataLayer, easyTestKey);
             }
         }

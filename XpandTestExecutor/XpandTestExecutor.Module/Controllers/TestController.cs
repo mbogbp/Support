@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Security.Principal;
 using System.Threading;
 using DevExpress.ExpressApp;
 using DevExpress.ExpressApp.Actions;
@@ -37,9 +39,17 @@ namespace XpandTestExecutor.Module.Controllers {
                 if (_cancellationTokenSource != null) _cancellationTokenSource.Cancel();
                 UpdateAction(true);
             }
+            else if (ReferenceEquals(e.SelectedChoiceActionItem.Data, ItemSelected)) {
+                var windowsIdentity = WindowsIdentity.GetCurrent();
+                Debug.Assert(windowsIdentity != null, "windowsIdentity != null");
+                _runTestAction.DoExecute(windowsIdentity.IsSystem
+                    ? e.SelectedChoiceActionItem.Items.Find(AsSystem)
+                    : e.SelectedChoiceActionItem.Items.Find(AsCurrent));
+            }
             else if (ReferenceEquals(e.SelectedChoiceActionItem.ParentItem.Data, ItemSelected)) {
                 UpdateAction(false);
-                _cancellationTokenSource = TestRunner.Execute(e.SelectedObjects.Cast<EasyTest>().ToArray(), isSystem, task => UpdateAction(true));
+                _cancellationTokenSource = TestRunner.Execute(e.SelectedObjects.Cast<EasyTest>().ToArray(), isSystem,
+                    task => UpdateAction(true));
             }
             else if (ReferenceEquals(e.SelectedChoiceActionItem.ParentItem.Data, UnlinkUser)) {
                 var easyTests = e.SelectedObjects.Cast<EasyTest>().ToArray();
@@ -48,7 +58,7 @@ namespace XpandTestExecutor.Module.Controllers {
                     easyTests = EasyTest.GetTests(ObjectSpace, fileNames);
                 }
                 foreach (var info in easyTests.SelectMany(test => test.GetCurrentSequenceInfos())) {
-                    info.WindowsUser = WindowsUser.CreateUsers((UnitOfWork)ObjectSpace.Session(), false).First();
+                    info.WindowsUser = WindowsUser.CreateUsers((UnitOfWork) ObjectSpace.Session(), false).First();
                     TestEnviroment.Setup(info);
                 }
                 ObjectSpace.RollbackSilent();

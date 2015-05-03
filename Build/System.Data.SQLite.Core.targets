@@ -84,7 +84,11 @@
       $(PostBuildEventDependsOn);
       CopySQLiteInteropFiles;
     </PostBuildEventDependsOn>
-    
+
+    <BuildDependsOn>
+      $(BuildDependsOn);
+      CopySQLiteInteropFiles;
+    </BuildDependsOn>
     <CleanDependsOn>
       $(CleanDependsOn);
       CleanSQLiteInteropFiles;
