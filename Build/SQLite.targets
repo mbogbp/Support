@@ -1,36 +1,13 @@
-<!--
- *
- * System.Data.SQLite.Core.targets -
- *
- * WARNING: This MSBuild file requires MSBuild 4.0 features.
- *
- * Written by Joe Mistachkin and David Archer.
- * Released to the public domain, use at your own risk!
- *
--->
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <ExtensionTasksPath Condition="'$(ExtensionTasksPath)' == ''">$(MSBuildThisFileDirectory)\ExtensionPack\</ExtensionTasksPath>
   </PropertyGroup>
   <Import Project="$(MSBuildThisFileDirectory)\ExtensionPack\MSBuild.ExtensionPack.tasks"/>
-  <!--
-  ******************************************************************************
-  **                    SQLite Interop Library Build Items                    **
-  ******************************************************************************
-  -->
 
+  <Target Name="CopySQLiteInteropFiles">
   <ItemGroup>
     <SQLiteInteropFiles Include="$(MSBuildThisFileDirectory)..\_third_party_assemblies\**\net40\**\SQLite.Interop.*" />
   </ItemGroup>
-  
-  <!--
-  ******************************************************************************
-  **                   SQLite Interop Library Build Targets                   **
-  ******************************************************************************
-  %(SQLiteInteropFiles.RootDir)%(SQLiteInteropFiles.Directory)
-  -->
-
-  <Target Name="CopySQLiteInteropFiles">
      <MSBuild.ExtensionPack.Framework.MsBuildHelper TaskAction="FilterItems" InputItems1="@(SQLiteInteropFiles)" RegexPattern=".*(x86)">
          <Output TaskParameter="OutputItems" ItemName="filtered"/>
      </MSBuild.ExtensionPack.Framework.MsBuildHelper>
@@ -44,26 +21,14 @@
 	 <Copy SourceFiles="@(filtered)" DestinationFolder="$(OutDir)\x64" /> 
   </Target>
 
-  <!--
-  ******************************************************************************
-  -->
-
   <Target Name="CleanSQLiteInteropFiles"
           Condition="'$(CleanSQLiteInteropFiles)' != 'false' And
                      '$(OutDir)' != '' And
                      HasTrailingSlash('$(OutDir)') And
                      Exists('$(OutDir)')">
-    <!--
-        NOTE: Delete "SQLite.Interop.dll" and all related files, for every
-              architecture that we support, from the build output directory.
-    -->
     <Delete Files="@(SQLiteInteropFiles -> '$(OutDir)%(RecursiveDir)%(Filename)%(Extension)')" />
   </Target>
-
-  <!--
-  ******************************************************************************
-  -->
-
+  
   <Target Name="CollectSQLiteInteropFiles"
           Condition="'$(CollectSQLiteInteropFiles)' != 'false'">
     <ItemGroup>
@@ -73,18 +38,7 @@
     </ItemGroup>
   </Target>
 
-  <!--
-  ******************************************************************************
-  **                 SQLite Interop Library Build Properties                  **
-  ******************************************************************************
-  -->
-
   <PropertyGroup>
-    <PostBuildEventDependsOn>
-      $(PostBuildEventDependsOn);
-      CopySQLiteInteropFiles;
-    </PostBuildEventDependsOn>
-
     <BuildDependsOn>
       $(BuildDependsOn);
       CopySQLiteInteropFiles;
@@ -94,12 +48,6 @@
       CleanSQLiteInteropFiles;
     </CleanDependsOn>
   </PropertyGroup>
-
-  <!--
-  ******************************************************************************
-  **     SQLite Interop Library Publish Properties for Visual Studio 201x     **
-  ******************************************************************************
-  -->
 
   <PropertyGroup Condition="'$(VisualStudioVersion)' == '' Or
                             '$(VisualStudioVersion)' == '10.0' Or
