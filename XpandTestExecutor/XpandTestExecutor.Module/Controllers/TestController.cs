@@ -29,8 +29,12 @@ namespace XpandTestExecutor.Module.Controllers {
         }
 
         private void AddChildChoices(ChoiceActionItem choiceActionItem) {
-            choiceActionItem.Items.Add(new ChoiceActionItem(AsSystem, AsSystem));
-            choiceActionItem.Items.Add(new ChoiceActionItem(AsCurrent, AsCurrent));
+            var windowsIdentity = WindowsIdentity.GetCurrent();
+            Debug.Assert(windowsIdentity != null, "windowsIdentity != null");
+            if (windowsIdentity.IsSystem){
+                choiceActionItem.Items.Add(new ChoiceActionItem(AsSystem, AsSystem));
+                choiceActionItem.Items.Add(new ChoiceActionItem(AsCurrent, AsCurrent));
+            }
         }
 
         private void RunTestActionOnExecute(object sender, SingleChoiceActionExecuteEventArgs e) {
@@ -39,6 +43,19 @@ namespace XpandTestExecutor.Module.Controllers {
                 if (_cancellationTokenSource != null) _cancellationTokenSource.Cancel();
                 UpdateAction(true);
             }
+            else if (ReferenceEquals(GetChoiceData(e.SelectedChoiceActionItem), ItemSelected)) {
+                UpdateAction(false);
+                if (!isSystem){
+                    DoUnlinkUser(GetChoiceData(e.SelectedChoiceActionItem), e.SelectedObjects.Cast<EasyTest>().ToArray());    
+                }
+                _cancellationTokenSource = TestRunner.Execute(e.SelectedObjects.Cast<EasyTest>().ToArray(), isSystem,
+                    task => UpdateAction(true));
+            }
+            else if (ReferenceEquals(GetChoiceData(e.SelectedChoiceActionItem), UnlinkUser)) {
+                var easyTests = e.SelectedObjects.Cast<EasyTest>().ToArray();
+                var choiceData = e.SelectedChoiceActionItem.Data;
+                DoUnlinkUser(choiceData, easyTests);
+            }
             else if (ReferenceEquals(e.SelectedChoiceActionItem.Data, ItemSelected)) {
                 var windowsIdentity = WindowsIdentity.GetCurrent();
                 Debug.Assert(windowsIdentity != null, "windowsIdentity != null");
@@ -46,28 +63,32 @@ namespace XpandTestExecutor.Module.Controllers {
                     ? e.SelectedChoiceActionItem.Items.Find(AsSystem)
                     : e.SelectedChoiceActionItem.Items.Find(AsCurrent));
             }
-            else if (ReferenceEquals(e.SelectedChoiceActionItem.ParentItem.Data, ItemSelected)) {
-                UpdateAction(false);
-                _cancellationTokenSource = TestRunner.Execute(e.SelectedObjects.Cast<EasyTest>().ToArray(), isSystem,
-                    task => UpdateAction(true));
-            }
-            else if (ReferenceEquals(e.SelectedChoiceActionItem.ParentItem.Data, UnlinkUser)) {
-                var easyTests = e.SelectedObjects.Cast<EasyTest>().ToArray();
-                if (ReferenceEquals(e.SelectedChoiceActionItem.Data, ItemFromFile)) {
-                    var fileNames = File.ReadAllLines("easytests.txt").Where(s => !string.IsNullOrEmpty(s)).ToArray();
-                    easyTests = EasyTest.GetTests(ObjectSpace, fileNames);
+            else{
+                if (!isSystem){
+                    
                 }
-                foreach (var info in easyTests.SelectMany(test => test.GetCurrentSequenceInfos())) {
-                    info.WindowsUser = WindowsUser.CreateUsers((UnitOfWork) ObjectSpace.Session(), false).First();
-                    TestEnviroment.Setup(info);
-                }
-                ObjectSpace.RollbackSilent();
-
-            }
-            else
                 TestRunner.Execute(
                     Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, "EasyTests.txt"), isSystem);
+                
+            }
+        }
 
+        private void DoUnlinkUser(object choiceData, EasyTest[] easyTests){
+            if (ReferenceEquals(choiceData, ItemFromFile)){
+                var fileNames = File.ReadAllLines("easytests.txt").Where(s => !string.IsNullOrEmpty(s)).ToArray();
+                easyTests = EasyTest.GetTests(ObjectSpace, fileNames);
+            }
+            foreach (var info in easyTests.SelectMany(test => test.GetCurrentSequenceInfos())){
+                info.WindowsUser = WindowsUser.CreateUsers((UnitOfWork) ObjectSpace.Session(), false).First();
+                TestEnviroment.Setup(info);
+            }
+            ObjectSpace.RollbackSilent();
+        }
+
+
+        private object GetChoiceData(ChoiceActionItem choiceActionItem){
+            var data = choiceActionItem.Data;
+            return choiceActionItem.ParentItem != null ? choiceActionItem.ParentItem.Data : data;
         }
 
         private void UpdateAction(bool startConfig) {

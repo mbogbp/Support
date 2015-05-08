@@ -114,7 +114,8 @@ namespace XpandTestExecutor.Module {
                     }
                     easyTest.LastEasyTestExecutionInfo.Update(state);
                     easyTest.Session.ValidateAndCommitChanges();
-                    EnviromentEx.LogOffUser(easyTest.LastEasyTestExecutionInfo.WindowsUser.Name);
+                    if (easyTest.LastEasyTestExecutionInfo.WindowsUser.Name != null)
+                        EnviromentEx.LogOffUser(easyTest.LastEasyTestExecutionInfo.WindowsUser.Name);
                 }
             }
         }
