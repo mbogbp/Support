@@ -11,6 +11,7 @@ using Xpand.Utils.Threading;
 
 namespace ProcessAsUser{
     internal class Program{
+        public const Int32 WAIT_TIMEOUT = 258;
         public static readonly ILog Logger = LogManager.GetLogger<Program>();
         [STAThread]
         internal static void Main(string[] args) {
@@ -51,7 +52,7 @@ namespace ProcessAsUser{
         public static CancellationTokenSource ExitOnTimeout(Options options){
             var tokenSource = options.Timeout.Execute(() =>{
                 Logger.Info("TIMEOUT");
-                Environment.Exit(0);
+                Environment.Exit(WAIT_TIMEOUT);
             });
             return tokenSource;
         }
