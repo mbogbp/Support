@@ -10,28 +10,28 @@ using XpandTestExecutor.Module.BusinessObjects;
 namespace XpandTestExecutor.Module {
     public class AppConfigUpdater {
 
-        public static void Update(string fileName, string configPath, EasyTestExecutionInfo easyTestExecutionInfo) {
+        public static void Update(string fileName, string configPath, EasyTestExecutionInfo easyTestExecutionInfo,bool unlink) {
             using (var optionsStream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read)) {
                 Options options = Options.LoadOptions(optionsStream, null, null, configPath);
-                UpdateAppConfigFiles(easyTestExecutionInfo, options);
+                UpdateAppConfigFiles(easyTestExecutionInfo, options,unlink);
             }
         }
-        private static void UpdateAppConfigFiles(EasyTestExecutionInfo easyTestExecutionInfo, Options options) {
+        private static void UpdateAppConfigFiles(EasyTestExecutionInfo easyTestExecutionInfo, Options options,bool unlink) {
             var user = easyTestExecutionInfo.WindowsUser;
-            if (user.Name != null) {
+            if (!unlink) {
                 foreach (var alias in options.Aliases.Cast<TestAlias>().Where(@alias => alias.ContainsAppPath())) {
-                    var sourcePath = Path.GetFullPath(alias.UpdateAppPath(null));
+                    var sourcePath = Path.GetFullPath(alias.UpdateAppPath(null,true));
                     if (Directory.Exists(sourcePath)) {
-                        var destPath = Path.GetFullPath(alias.UpdateAppPath(user.Name));
+                        var destPath = Path.GetFullPath(alias.UpdateAppPath(user.Name,false));
                         DirectoryCopy(sourcePath, destPath, true, sourcePath + @"\" + TestRunner.EasyTestUsersDir);
-                        UpdateAppConfig(easyTestExecutionInfo, options, alias, user);
+                        UpdateAppConfig(easyTestExecutionInfo, options, alias, user, false);
                     }
                 }
             }
-            UpdateAdditionalApps(easyTestExecutionInfo, options, user);
+            UpdateAdditionalApps(easyTestExecutionInfo, options, user,unlink);
         }
 
-        public static void UpdateAdditionalApps(EasyTestExecutionInfo easyTestExecutionInfo, Options options, WindowsUser windowsUser) {
+        public static void UpdateAdditionalApps(EasyTestExecutionInfo easyTestExecutionInfo, Options options, WindowsUser windowsUser,bool unlink) {
             var additionalApps = options.Applications.Cast<TestApplication>()
                     .SelectMany(application => application.AdditionalAttributes)
                     .Where(attribute => attribute.LocalName == "AdditionalApplications")
@@ -39,19 +39,19 @@ namespace XpandTestExecutor.Module {
             foreach (var additionalApp in additionalApps) {
                 var path = Path.Combine(Path.GetDirectoryName(additionalApp) + "", Path.GetFileName(additionalApp) + ".config");
                 var document = XDocument.Load(path);
-                UpdateAppConfigCore(easyTestExecutionInfo, options, windowsUser, document);
+                UpdateAppConfigCore(easyTestExecutionInfo, options, windowsUser, document,unlink);
                 document.Save(path);
             }
         }
 
-        private static void UpdateConnectionStrings(WindowsUser windowsUser, Options options, XDocument document) {
+        private static void UpdateConnectionStrings(WindowsUser windowsUser, Options options, XDocument document,bool unlink) {
             foreach (TestDatabase testDatabase in options.TestDatabases) {
                 var database = testDatabase.DefaultDBName();
                 var connectionStrings = document.Descendants("connectionStrings").SelectMany(element => element.Descendants())
                     .Where(element => element.Attribute("connectionString").Value.ToLowerInvariant().Contains(database.ToLowerInvariant())).Select(element
                         => element.Attribute("connectionString"));
                 foreach (var connectionString in connectionStrings) {
-                    string userNameSuffix = windowsUser.Name != null ? "_" + windowsUser.Name : null;
+                    string userNameSuffix = !unlink ? "_" + windowsUser.Name : null;
                     connectionString.Value = Regex.Replace(connectionString.Value,
                         @"(.*)(" + database + @"[^;""\s]*)(.*)", "$1" + database + userNameSuffix + "$3",
                         RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Multiline);
@@ -114,18 +114,18 @@ namespace XpandTestExecutor.Module {
             return new KeyValuePair<XDocument, string>();
         }
 
-        private static void UpdateAppConfig(EasyTestExecutionInfo easyTestExecutionInfo, Options options, TestAlias alias, WindowsUser windowsUser) {
+        private static void UpdateAppConfig(EasyTestExecutionInfo easyTestExecutionInfo, Options options, TestAlias alias, WindowsUser windowsUser, bool unlink) {
             var keyValuePair = LoadAppConfig(alias, options.Applications);
             if (File.Exists(keyValuePair.Value)) {
                 var document = keyValuePair.Key;
-                UpdateAppConfigCore(easyTestExecutionInfo, options, windowsUser, document);
+                UpdateAppConfigCore(easyTestExecutionInfo, options, windowsUser, document,unlink);
                 document.Save(keyValuePair.Value);
             }
         }
 
-        private static void UpdateAppConfigCore(EasyTestExecutionInfo easyTestExecutionInfo, Options options, WindowsUser windowsUser, XDocument document) {
+        private static void UpdateAppConfigCore(EasyTestExecutionInfo easyTestExecutionInfo, Options options, WindowsUser windowsUser, XDocument document,bool unlink) {
             UpdatePort(easyTestExecutionInfo.WinPort, document);
-            UpdateConnectionStrings(windowsUser, options, document);
+            UpdateConnectionStrings(windowsUser, options, document,unlink);
         }
     }
 }

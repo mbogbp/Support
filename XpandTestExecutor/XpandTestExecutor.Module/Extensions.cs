@@ -48,8 +48,10 @@ namespace XpandTestExecutor.Module {
             return alias.Name.ToLowerInvariant().StartsWith("win");
         }
 
-        public static string UpdateAppPath(this TestAlias alias, string userName) {
-            string containerDir = userName == null ? null : TestRunner.EasyTestUsersDir + @"\";
+        public static string UpdateAppPath(this TestAlias alias, string userName,bool unlink) {
+            if (unlink)
+                userName = null;
+            string containerDir = unlink? null : TestRunner.EasyTestUsersDir + @"\";
             return IsWinAppPath(alias)
                 ? Regex.Replace(alias.Value, @"(.*\\Bin\\)(.*)", @"$1EasyTest\" + containerDir + userName,
                     RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.Multiline)

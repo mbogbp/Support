@@ -194,6 +194,10 @@ namespace XpandTestExecutor.Module.BusinessObjects {
             }
 
         }
+
+        public bool ExecutedFromSystem() {
+            return WindowsUser.Name != null;
+        }
     }
 
     public enum EasyTestState {

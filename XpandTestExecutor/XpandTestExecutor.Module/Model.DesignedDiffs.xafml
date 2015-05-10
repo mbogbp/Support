@@ -1,5 +1,15 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Application Title="XpandTestExecutor" Logo="ExpressAppLogo">
+  <ActionDesign>
+    <Actions>
+      <Action Id="ExecutionMode" QuickAccess="True" ImageName="Action_Debug_Start" >
+        <DefaultValue DefaultIndex="1" Synchronize="True" />
+      </Action>
+      <Action Id="UserMode" QuickAccess="True" ImageName="BO_User">
+        <DefaultValue DefaultIndex="0" Synchronize="True" />
+      </Action>
+    </Actions>
+  </ActionDesign>
   <BOModel>
     <Class Name="XpandTestExecutor.Module.BusinessObjects.EasyTest">
       <AppearanceRules>

@@ -48,8 +48,9 @@ namespace XpandTestExecutor.Module {
                             StartInfo = processStartInfo
                         };
                         process.Start();
-                        _processes[easyTestKey]=process;
-                        lastEasyTestExecutionInfo = unitOfWork.GetObjectByKey<EasyTestExecutionInfo>(lastEasyTestExecutionInfo.Oid, true);
+                        _processes[easyTestKey] = process;
+                        lastEasyTestExecutionInfo =
+                            unitOfWork.GetObjectByKey<EasyTestExecutionInfo>(lastEasyTestExecutionInfo.Oid, true);
                         lastEasyTestExecutionInfo.Update(EasyTestState.Running);
                         unitOfWork.ValidateAndCommitChanges();
 
@@ -100,6 +101,7 @@ namespace XpandTestExecutor.Module {
             lock (_locker) {
                 using (var unitOfWork = new UnitOfWork(dataLayer)) {
                     var easyTest = unitOfWork.GetObjectByKey<EasyTest>(easyTestKey, true);
+                    TestEnviroment.Setup(easyTest.LastEasyTestExecutionInfo, true);
                     var directoryName = Path.GetDirectoryName(easyTest.FileName) + "";
                     CopyXafLogs(directoryName);
                     var logTests = easyTest.GetFailedLogTests();
@@ -114,7 +116,7 @@ namespace XpandTestExecutor.Module {
                     }
                     easyTest.LastEasyTestExecutionInfo.Update(state);
                     easyTest.Session.ValidateAndCommitChanges();
-                    if (easyTest.LastEasyTestExecutionInfo.WindowsUser.Name != null)
+                    if (easyTest.LastEasyTestExecutionInfo.ExecutedFromSystem())
                         EnviromentEx.LogOffUser(easyTest.LastEasyTestExecutionInfo.WindowsUser.Name);
                 }
             }
@@ -135,7 +137,7 @@ namespace XpandTestExecutor.Module {
         }
 
         private static void SetupEnviroment(EasyTest easyTest) {
-            TestEnviroment.Setup(easyTest.LastEasyTestExecutionInfo);
+            TestEnviroment.Setup(easyTest.LastEasyTestExecutionInfo,false);
         }
 
         public static void Execute(string fileName, bool isSystem) {

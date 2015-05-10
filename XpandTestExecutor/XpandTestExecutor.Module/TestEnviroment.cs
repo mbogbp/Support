@@ -31,7 +31,7 @@ namespace XpandTestExecutor.Module {
                     using (var optionsStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read)) {
                         var options = Options.LoadOptions(optionsStream, null, null, easyTest.Key);
                         foreach (var alias in options.Aliases.Cast<TestAlias>().Where(@alias => alias.ContainsAppPath())) {
-                            var appPath = alias.UpdateAppPath(null);
+                            var appPath = alias.UpdateAppPath(null,true);
                             var usersDir = Path.Combine(appPath, TestRunner.EasyTestUsersDir);
                             if (Directory.Exists(usersDir))
                                 Directory.Delete(usersDir, true);
@@ -45,12 +45,12 @@ namespace XpandTestExecutor.Module {
 
         }
 
-        public static void Setup(EasyTestExecutionInfo info) {
+        public static void Setup(EasyTestExecutionInfo info,bool unlink) {
             string configPath = Path.GetDirectoryName(info.EasyTest.FileName) + "";
             string fileName = Path.Combine(configPath, "config.xml");
-            TestUpdater.UpdateTestConfig(info, fileName);
-            AppConfigUpdater.Update(fileName, configPath, info);
-            TestUpdater.UpdateTestFile(info);
+            TestUpdater.UpdateTestConfig(info, fileName,unlink);
+            AppConfigUpdater.Update(fileName, configPath, info,unlink);
+            TestUpdater.UpdateTestFile(info,unlink);
         }
     }
 }

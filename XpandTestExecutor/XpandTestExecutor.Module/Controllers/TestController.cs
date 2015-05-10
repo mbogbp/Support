@@ -12,106 +12,95 @@ using Xpand.Persistent.Base.General;
 using XpandTestExecutor.Module.BusinessObjects;
 
 namespace XpandTestExecutor.Module.Controllers {
-    public class TestController : ObjectViewController<ListView, EasyTest> {
-        private const string CancelRun = "Cancel Run";
-        private readonly SingleChoiceAction _runTestAction;
-        private CancellationTokenSource _cancellationTokenSource;
-        private const string ItemSelected = "Selected";
-        private const string ItemFromFile = "FromFile";
-        private const string AsSystem = "AsSystem";
-        private const string AsCurrent = "AsCurrent";
-        private const string UnlinkUser = "Unlink user";
-        public TestController() {
-            _runTestAction = new SingleChoiceAction(this, "RunTest", PredefinedCategory.View) { Caption = "Run" };
-            _runTestAction.Execute += RunTestActionOnExecute;
-            _runTestAction.ItemType = SingleChoiceActionItemType.ItemIsOperation;
-            UpdateAction(true);
-        }
-
-        private void AddChildChoices(ChoiceActionItem choiceActionItem) {
+    public class TestControllerHelper:WindowController {
+        internal const string Selected = "Selected";
+        internal const string FromFile = "FromFile";
+        internal const string System = "System";
+        private const string Current = "Current";
+        private readonly SingleChoiceAction _userModeAction;
+        private readonly SingleChoiceAction _executionModeAction;
+        public TestControllerHelper() {
+            TargetWindowType=WindowType.Main;
             var windowsIdentity = WindowsIdentity.GetCurrent();
             Debug.Assert(windowsIdentity != null, "windowsIdentity != null");
-            if (windowsIdentity.IsSystem){
-                choiceActionItem.Items.Add(new ChoiceActionItem(AsSystem, AsSystem));
-                choiceActionItem.Items.Add(new ChoiceActionItem(AsCurrent, AsCurrent));
-            }
+
+            _userModeAction = new SingleChoiceAction(this, "UserMode", PredefinedCategory.Tools) { Caption = "Identity" };
+            _userModeAction.Items.Add(new ChoiceActionItem(System, System));
+            _userModeAction.Items.Add(new ChoiceActionItem(Current, Current));
+            _userModeAction.Active[""] = windowsIdentity.IsSystem;
+
+            _executionModeAction = new SingleChoiceAction(this, "ExecutionMode", PredefinedCategory.Tools) { Caption = "Execution" };
+            _executionModeAction.Items.Add(new ChoiceActionItem(FromFile, FromFile));
+            _executionModeAction.Items.Add(new ChoiceActionItem(Selected, Selected));
         }
 
-        private void RunTestActionOnExecute(object sender, SingleChoiceActionExecuteEventArgs e) {
-            var isSystem = ReferenceEquals(e.SelectedChoiceActionItem.Data, AsSystem);
-            if (ReferenceEquals(e.SelectedChoiceActionItem.Data, CancelRun)){
-                if (_cancellationTokenSource != null) _cancellationTokenSource.Cancel();
-                UpdateAction(true);
-            }
-            else if (ReferenceEquals(GetChoiceData(e.SelectedChoiceActionItem), ItemSelected)) {
-                UpdateAction(false);
-                if (!isSystem){
-                    DoUnlinkUser(GetChoiceData(e.SelectedChoiceActionItem), e.SelectedObjects.Cast<EasyTest>().ToArray());    
-                }
-                _cancellationTokenSource = TestRunner.Execute(e.SelectedObjects.Cast<EasyTest>().ToArray(), isSystem,
-                    task => UpdateAction(true));
-            }
-            else if (ReferenceEquals(GetChoiceData(e.SelectedChoiceActionItem), UnlinkUser)) {
-                var easyTests = e.SelectedObjects.Cast<EasyTest>().ToArray();
-                var choiceData = e.SelectedChoiceActionItem.Data;
-                DoUnlinkUser(choiceData, easyTests);
-            }
-            else if (ReferenceEquals(e.SelectedChoiceActionItem.Data, ItemSelected)) {
-                var windowsIdentity = WindowsIdentity.GetCurrent();
-                Debug.Assert(windowsIdentity != null, "windowsIdentity != null");
-                _runTestAction.DoExecute(windowsIdentity.IsSystem
-                    ? e.SelectedChoiceActionItem.Items.Find(AsSystem)
-                    : e.SelectedChoiceActionItem.Items.Find(AsCurrent));
-            }
-            else{
-                if (!isSystem){
-                    
-                }
-                TestRunner.Execute(
-                    Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, "EasyTests.txt"), isSystem);
-                
-            }
+        public SingleChoiceAction UserModeAction {
+            get { return _userModeAction; }
         }
 
-        private void DoUnlinkUser(object choiceData, EasyTest[] easyTests){
-            if (ReferenceEquals(choiceData, ItemFromFile)){
+        public SingleChoiceAction ExecutionModeAction {
+            get { return _executionModeAction; }
+        }
+    }
+    public class TestController : ObjectViewController<ListView, EasyTest> {
+        private const string CancelRun = "Cancel Run";
+        private const string Run = "Run";
+        private readonly SimpleAction _runTestAction;
+        private CancellationTokenSource _cancellationTokenSource;
+        private readonly SimpleAction _unlinkTestAction;
+        private SingleChoiceAction _executionModeAction;
+        private SingleChoiceAction _userModeAction;
+
+        public TestController() {
+            _runTestAction = new SimpleAction(this, "RunTest", PredefinedCategory.View) { Caption = Run };
+            _runTestAction.Execute += RunTestActionOnExecute;
+
+            _unlinkTestAction = new SimpleAction(this, "UnlinkTest", PredefinedCategory.View) {Caption = "Unlink"};
+            _unlinkTestAction.Execute+=UnlinkTestActionOnExecute;   
+        }
+
+        protected override void OnActivated() {
+            base.OnActivated();
+            var testControllerHelper = Application.MainWindow.GetController<TestControllerHelper>();
+            _executionModeAction = testControllerHelper.ExecutionModeAction;
+            _userModeAction = testControllerHelper.UserModeAction;
+        }
+
+        private void UnlinkTestActionOnExecute(object sender, SimpleActionExecuteEventArgs e) {
+            var easyTests = e.SelectedObjects.Cast<EasyTest>().ToArray();
+            if (ReferenceEquals(_executionModeAction.SelectedItem.Data, TestControllerHelper.FromFile)) {
                 var fileNames = File.ReadAllLines("easytests.txt").Where(s => !string.IsNullOrEmpty(s)).ToArray();
                 easyTests = EasyTest.GetTests(ObjectSpace, fileNames);
             }
-            foreach (var info in easyTests.SelectMany(test => test.GetCurrentSequenceInfos())){
-                info.WindowsUser = WindowsUser.CreateUsers((UnitOfWork) ObjectSpace.Session(), false).First();
-                TestEnviroment.Setup(info);
+            foreach (var info in easyTests.SelectMany(test => test.GetCurrentSequenceInfos())) {
+                info.WindowsUser = WindowsUser.CreateUsers((UnitOfWork)ObjectSpace.Session(), false).First();
+                TestEnviroment.Setup(info,true);
             }
             ObjectSpace.RollbackSilent();
+
         }
 
-
-        private object GetChoiceData(ChoiceActionItem choiceActionItem){
-            var data = choiceActionItem.Data;
-            return choiceActionItem.ParentItem != null ? choiceActionItem.ParentItem.Data : data;
-        }
-
-        private void UpdateAction(bool startConfig) {
-            _runTestAction.Items.Clear();
-            if (startConfig) {
-                _runTestAction.Caption = "Run";
-                var choiceActionItem = new ChoiceActionItem(ItemSelected, ItemSelected);
-                AddChildChoices(choiceActionItem);
-                _runTestAction.Items.Add(choiceActionItem);
-
-                var actionItem = new ChoiceActionItem(ItemFromFile, ItemFromFile);
-                AddChildChoices(actionItem);
-                _runTestAction.Items.Add(actionItem);
-
-                actionItem = new ChoiceActionItem(UnlinkUser, UnlinkUser);
-                actionItem.Items.Add(new ChoiceActionItem(ItemSelected, ItemSelected));
-                actionItem.Items.Add(new ChoiceActionItem(ItemFromFile, ItemFromFile));
-                _runTestAction.Items.Add(actionItem);
+        private void RunTestActionOnExecute(object sender, SimpleActionExecuteEventArgs e) {
+            var isSystemMode = IsSystemMode();
+            if (_runTestAction.Caption==CancelRun){
+                if (_cancellationTokenSource != null) _cancellationTokenSource.Cancel();
+                _runTestAction.Caption = Run;
             }
-            else {
+            else if (ReferenceEquals(_executionModeAction.SelectedItem.Data, TestControllerHelper.Selected)) {
                 _runTestAction.Caption = CancelRun;
-                _runTestAction.Items.Add(new ChoiceActionItem(CancelRun, CancelRun));
+                if (!isSystemMode) {
+                    _unlinkTestAction.DoExecute();
+                }
+                _cancellationTokenSource = TestRunner.Execute(e.SelectedObjects.Cast<EasyTest>().ToArray(), isSystemMode,
+                    task => _runTestAction.Caption = Run);}
+            else {
+                var fileName = Path.Combine(AppDomain.CurrentDomain.SetupInformation.ApplicationBase, "EasyTests.txt");
+                TestRunner.Execute(fileName, isSystemMode);
             }
+        }
+
+        private bool IsSystemMode() {
+            return _executionModeAction.Active && ReferenceEquals(_userModeAction.SelectedItem.Data, TestControllerHelper.System);
         }
     }
 }
