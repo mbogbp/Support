@@ -152,9 +152,11 @@
     <Compile Include="Controllers\TestController.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="Controllers\TestControllerHelper.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="CurrentSequenceOperator.cs" />
     <Compile Include="Extensions.cs" />
-    <Compile Include="ModelOptions.cs" />
     <Compile Include="TestEnviroment.cs" />
     <Compile Include="TestRunner.cs" />
     <Compile Include="TestUpdater.cs" />

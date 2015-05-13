@@ -2,8 +2,11 @@
 <Application Title="XpandTestExecutor" Logo="ExpressAppLogo">
   <ActionDesign>
     <Actions>
-      <Action Id="ExecutionMode" QuickAccess="True" ImageName="Action_Debug_Start" >
+      <Action Id="SelectionMode" QuickAccess="True" ImageName="Action_Grant_Set" >
         <DefaultValue DefaultIndex="1" Synchronize="True" />
+      </Action>
+      <Action Id="ExecutionMode" QuickAccess="True" ImageName="Action_Debug_Start" >
+        <DefaultValue DefaultIndex="0" Synchronize="True" />
       </Action>
       <Action Id="UserMode" QuickAccess="True" ImageName="BO_User">
         <DefaultValue DefaultIndex="0" Synchronize="True" />

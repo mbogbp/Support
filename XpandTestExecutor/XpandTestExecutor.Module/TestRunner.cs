@@ -14,6 +14,7 @@ using Xpand.Persistent.Base.General;
 using Xpand.Utils.Helpers;
 using Xpand.Utils.Threading;
 using XpandTestExecutor.Module.BusinessObjects;
+using XpandTestExecutor.Module.Controllers;
 
 namespace XpandTestExecutor.Module {
     public class TestRunner {
@@ -31,7 +32,7 @@ namespace XpandTestExecutor.Module {
         }
 
         static readonly Dictionary<Guid, Process> _processes = new Dictionary<Guid, Process>();
-        private static void RunTest(Guid easyTestKey, IDataLayer dataLayer, bool isSystem) {
+        private static void RunTest(Guid easyTestKey, IDataLayer dataLayer, bool isSystem,bool debugMode) {
             Process process = null;
             int timeout;
             lock (_locker) {
@@ -42,7 +43,7 @@ namespace XpandTestExecutor.Module {
                         var lastEasyTestExecutionInfo = easyTest.LastEasyTestExecutionInfo;
                         var user = lastEasyTestExecutionInfo.WindowsUser;
                         SetupEnviroment(easyTest);
-                        var processStartInfo = GetProcessStartInfo(easyTest, user, isSystem);
+                        var processStartInfo = GetProcessStartInfo(easyTest, user, isSystem,debugMode);
 
                         process = new Process {
                             StartInfo = processStartInfo
@@ -62,7 +63,8 @@ namespace XpandTestExecutor.Module {
                 }
             }
             if (process != null) {
-                process.WaitForExit(timeout);
+                var task = Task.Factory.StartNew(() => process.WaitForExit(timeout)).TimeoutAfter(timeout);
+                Task.WaitAll(task);
                 AfterProcessExecute(dataLayer, easyTestKey);
             }
         }
@@ -83,9 +85,12 @@ namespace XpandTestExecutor.Module {
             }
             Tracing.Tracer.LogError(e);
         }
-        private static ProcessStartInfo GetProcessStartInfo(EasyTest easyTest, WindowsUser user, bool isSystem) {
+        private static ProcessStartInfo GetProcessStartInfo(EasyTest easyTest, WindowsUser user, bool isSystem, bool debugMode) {
             string testExecutor = string.Format("TestExecutor.v{0}.exe", AssemblyInfo.VersionShort);
-            var arguments = isSystem ? string.Format("-e " + testExecutor + " -u {0} -p {1} -a {2} -t {3}", user.Name, user.Password, Path.GetFileName(easyTest.FileName), easyTest.Options.DefaultTimeout*60*1000) : Path.GetFileName(easyTest.FileName);
+            string arguments = isSystem
+                ? string.Format("-e " + testExecutor + " -u {0} -p {1} -a {2} -t {3}", user.Name, user.Password,
+                    GetArguments(easyTest, debugMode), easyTest.Options.DefaultTimeout*60*1000)
+                : Path.GetFileName(easyTest.FileName);
             string directoryName = Path.GetDirectoryName(easyTest.FileName) + "";
             var exe = isSystem ? "ProcessAsUser.exe" : testExecutor;
             var processStartInfo = new ProcessStartInfo(Path.Combine(directoryName, exe), arguments) {
@@ -97,11 +102,15 @@ namespace XpandTestExecutor.Module {
             return processStartInfo;
         }
 
+        private static string GetArguments(EasyTest easyTest, bool debugMode) {
+            var fileName = Path.GetFileName(easyTest.FileName);
+            return debugMode ? fileName + " -d:" : fileName;
+        }
+
         private static void AfterProcessExecute(IDataLayer dataLayer, Guid easyTestKey) {
             lock (_locker) {
                 using (var unitOfWork = new UnitOfWork(dataLayer)) {
                     var easyTest = unitOfWork.GetObjectByKey<EasyTest>(easyTestKey, true);
-                    TestEnviroment.Setup(easyTest.LastEasyTestExecutionInfo, true);
                     var directoryName = Path.GetDirectoryName(easyTest.FileName) + "";
                     CopyXafLogs(directoryName);
                     var logTests = easyTest.GetFailedLogTests();
@@ -116,8 +125,10 @@ namespace XpandTestExecutor.Module {
                     }
                     easyTest.LastEasyTestExecutionInfo.Update(state);
                     easyTest.Session.ValidateAndCommitChanges();
-                    if (easyTest.LastEasyTestExecutionInfo.ExecutedFromSystem())
+                    if (easyTest.LastEasyTestExecutionInfo.ExecutedFromSystem()) {
                         EnviromentEx.LogOffUser(easyTest.LastEasyTestExecutionInfo.WindowsUser.Name);
+                        TestEnviroment.Setup(easyTest.LastEasyTestExecutionInfo, true);
+                    }
                 }
             }
         }
@@ -142,7 +153,7 @@ namespace XpandTestExecutor.Module {
 
         public static void Execute(string fileName, bool isSystem) {
             var easyTests = GetEasyTests(fileName);
-            Execute(easyTests, isSystem, task => { });
+            Execute(easyTests, isSystem,false, task => { });
         }
 
         public static EasyTest[] GetEasyTests(string fileName) {
@@ -157,12 +168,12 @@ namespace XpandTestExecutor.Module {
             return easyTests;
         }
 
-        public static CancellationTokenSource Execute(EasyTest[] easyTests, bool isSystem, Action<Task> continueWith) {
+        public static CancellationTokenSource Execute(EasyTest[] easyTests, bool isSystem,bool debugMode, Action<Task> continueWith) {
             Tracing.Tracer.LogValue("EasyTests.Count", easyTests.Count());
             if (easyTests.Any()) {
                 TestEnviroment.KillProcessAsUser();
                 var tokenSource = new CancellationTokenSource();
-                Task.Factory.StartNew(() => ExecuteCore(easyTests, isSystem,  tokenSource.Token),tokenSource.Token).ContinueWith(task =>{
+                Task.Factory.StartNew(() => ExecuteCore(easyTests, isSystem,  tokenSource.Token,debugMode),tokenSource.Token).ContinueWith(task =>{
                     Trace.TraceInformation("Main thread finished");
                     continueWith(task);
                 }, tokenSource.Token);
@@ -172,7 +183,7 @@ namespace XpandTestExecutor.Module {
             return null;
         }
 
-        private static void ExecuteCore(EasyTest[] easyTests, bool isSystem, CancellationToken token) {
+        private static void ExecuteCore(EasyTest[] easyTests, bool isSystem, CancellationToken token,bool debugMode) {
             var dataLayer = GetDatalayer();
             var executionInfoKey = CreateExecutionInfoKey(dataLayer, isSystem, easyTests);
             do {
@@ -180,7 +191,7 @@ namespace XpandTestExecutor.Module {
                     return;
                 var easyTest = GetNextEasyTest(executionInfoKey, easyTests, dataLayer, isSystem);
                 if (easyTest != null) {
-                    Task.Factory.StartNew(() => RunTest(easyTest.Oid, dataLayer, isSystem), token).TimeoutAfter(easyTest.Options.DefaultTimeout*60*1000);
+                    Task.Factory.StartNew(() => RunTest(easyTest.Oid, dataLayer, isSystem,debugMode), token).TimeoutAfter(easyTest.Options.DefaultTimeout*60*1000);
                 }
                 Thread.Sleep(10000);
             } while (!ExecutionFinished(dataLayer, executionInfoKey, easyTests.Length));
@@ -256,9 +267,9 @@ namespace XpandTestExecutor.Module {
         }
 
 
-        public static void Execute(string fileName, bool isSystem, Action<Task> continueWith) {
+        public static void Execute(string fileName, bool isSystem, Action<Task> continueWith,bool debugMode) {
             var easyTests = GetEasyTests(fileName);
-            Execute(easyTests, isSystem, continueWith);
+            Execute(easyTests, isSystem, debugMode,continueWith);
         }
     }
 }

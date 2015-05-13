@@ -2,7 +2,6 @@ using System;
 using DevExpress.ExpressApp;
 using DevExpress.ExpressApp.DC;
 using System.Collections.Generic;
-using DevExpress.ExpressApp.Model;
 using DevExpress.ExpressApp.Updating;
 
 namespace XpandTestExecutor.Module {
@@ -14,12 +13,6 @@ namespace XpandTestExecutor.Module {
         public override IEnumerable<ModuleUpdater> GetModuleUpdaters(IObjectSpace objectSpace, Version versionFromDB) {
             ModuleUpdater updater = new DatabaseUpdate.Updater(objectSpace, versionFromDB);
             return new[] { updater };
-        }
-
-        public override void ExtendModelInterfaces(ModelInterfaceExtenders extenders)
-        {
-            base.ExtendModelInterfaces(extenders);
-            extenders.Add<IModelOptions,IModelOptionsTestExecutor>();
         }
 
         public override void CustomizeTypesInfo(ITypesInfo typesInfo){
