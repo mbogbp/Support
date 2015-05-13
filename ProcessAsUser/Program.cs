@@ -18,7 +18,7 @@ namespace ProcessAsUser{
             var options = new Options();
             bool arguments = Parser.Default.ParseArguments(args, options);
             Logger.Info("Arguments parsed=" + arguments);
-            if (arguments){
+            if (arguments) {
                 WindowsIdentity windowsIdentity = WindowsIdentity.GetCurrent();
                 Debug.Assert(windowsIdentity != null, "windowsIdentity != null");
                 var processAsUser = new ProcessAsUser(options);

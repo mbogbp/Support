@@ -10,7 +10,7 @@ using MSTSCLib;
 namespace ProcessAsUser {
     public partial class RDClient : Form {
         private readonly ProcessAsUser _processAsUser;
-//        private CancellationTokenSource _cancellationTokenSource;
+        private CancellationTokenSource _cancellationTokenSource;
 
         public RDClient() {
             InitializeComponent();
@@ -20,23 +20,11 @@ namespace ProcessAsUser {
             _processAsUser = processAsUser;
             Load += OnLoad;
             rdp.OnLoginComplete+=RdpOnOnLoginComplete;
-            rdp.OnLogonError+=RdpOnOnLogonError;
         }
 
-        private void RdpOnOnLogonError(object sender, IMsTscAxEvents_OnLogonErrorEvent e){
-            Program.Logger.Error("Logon Error=" + e.lError);
-            
-            Program.Logger.Info("UserName="+_processAsUser.Options.UserName);
-            Program.Logger.Info("Password="+_processAsUser.Options.Password);
-
-//            CancelWaitForExit();
-            Program.Logger.Error("Environment.Exit");
-            Environment.Exit(Program.WAIT_TIMEOUT);
+        private void CancelWaitForExit(){
+            if (_cancellationTokenSource != null) _cancellationTokenSource.Cancel();
         }
-
-//        private void CancelWaitForExit(){
-//            if (_cancellationTokenSource != null) _cancellationTokenSource.Cancel();
-//        }
 
         private void RdpOnOnLoginComplete(object sender, EventArgs eventArgs){
             Program.Logger.Info("LoginComplete");
@@ -52,7 +40,7 @@ namespace ProcessAsUser {
             Task.WaitAll(task);
             var createProcess = _processAsUser.CreateProcess();
             Program.Logger.Info("CreateProcess="+createProcess);
-//            CancelWaitForExit();
+            CancelWaitForExit();
             Close();
         }
 
@@ -79,7 +67,7 @@ namespace ProcessAsUser {
             var secured = (IMsTscNonScriptable)rdp.GetOcx();
             secured.ClearTextPassword = password;
             rdp.Connect();
-//            _cancellationTokenSource = Program.ExitOnTimeout(_processAsUser.Options);
+            _cancellationTokenSource = Program.ExitOnTimeout(_processAsUser.Options);
         }
 
         private void button1_Click(object sender, EventArgs e) {
