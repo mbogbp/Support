@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using DevExpress.EasyTest.Framework;
@@ -27,12 +28,16 @@ namespace XpandTestExecutor.Module.BusinessObjects {
             var directoryName = Path.GetDirectoryName(FileName) + "";
             var fileName = Path.Combine(directoryName, "testslog.xml");
             if (File.Exists(fileName)) {
-                using (var optionsStream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-                    return LogTests.LoadTestsResults(optionsStream).Tests.Where(test
-                        => test != null ).Where(test => test.Result != "Passed").ToArray();
+                using (var optionsStream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)) {
+                    return LoadTestsResults(optionsStream);
                 }
             }
             return new LogTest[0];
+        }
+
+        private LogTest[] LoadTestsResults(FileStream optionsStream) {
+            return LogTests.LoadTestsResults(optionsStream).Tests.Where(test
+                => test != null).Where(test => test.Result != "Passed").ToArray();
         }
 
         public override string ToString() {
@@ -94,15 +99,9 @@ namespace XpandTestExecutor.Module.BusinessObjects {
             get { return null; }
         }
 
+        [Browsable(false)]
         public Options Options{
-            get{
-                var directoryName = Path.GetDirectoryName(FileName) + "";
-                string fileName = Path.Combine(directoryName, "config.xml");
-                var optionsStream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
-                var options = Options.LoadOptions(optionsStream, null, null, directoryName);
-                optionsStream.Close();
-                return options;
-            }
+            get { return OptionsProvider.Instance[Oid]; }
         }
 
         public void CreateExecutionInfo(bool useCustomPort, ExecutionInfo executionInfo, WindowsUser windowsUser = null) {
@@ -124,8 +123,6 @@ namespace XpandTestExecutor.Module.BusinessObjects {
                 _lastEasyTestExecutionInfo.WebPort = webPort + 1;
             }
             EasyTestExecutionInfos.Add(_lastEasyTestExecutionInfo);
-
-
         }
 
         private EasyTestExecutionInfo GetLastInfo() {
