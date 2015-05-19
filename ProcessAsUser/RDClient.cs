@@ -20,7 +20,13 @@ namespace ProcessAsUser {
             _processAsUser = processAsUser;
             Load += OnLoad;
             rdp.OnLoginComplete+=RdpOnOnLoginComplete;
+            rdp.OnLogonError += RdpOnOnLogonError;
         }
+
+        private void RdpOnOnLogonError(object sender, IMsTscAxEvents_OnLogonErrorEvent e) {
+            Program.Logger.Error("LogonError=" + e.lError);
+        }
+
 
         private void CancelWaitForExit(){
             if (_cancellationTokenSource != null) _cancellationTokenSource.Cancel();
@@ -44,7 +50,8 @@ namespace ProcessAsUser {
             Close();
         }
 
-        private void OnLoad(object sender, EventArgs eventArgs){
+        private void OnLoad(object sender, EventArgs eventArgs) {
+            Text = _processAsUser.Options.Arguments;
             bool sessionExists = _processAsUser.SessionExists();
             Program.Logger.Info("SessionExists=" + sessionExists);
             if (!sessionExists)
