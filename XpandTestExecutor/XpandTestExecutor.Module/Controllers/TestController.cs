@@ -9,6 +9,7 @@ using DevExpress.ExpressApp.Model;
 using DevExpress.Persistent.Base;
 using DevExpress.Xpo;
 using Xpand.Persistent.Base.General;
+using Xpand.Utils.Helpers;
 using XpandTestExecutor.Module.BusinessObjects;
 
 namespace XpandTestExecutor.Module.Controllers {
@@ -50,7 +51,7 @@ namespace XpandTestExecutor.Module.Controllers {
             }
             foreach (var info in easyTests.SelectMany(test => test.GetCurrentSequenceInfos())) {
                 info.WindowsUser = WindowsUser.CreateUsers((UnitOfWork)ObjectSpace.Session(), false).First();
-                TestEnviroment.Setup(info,true);
+                info.Setup(true);
             }
             ObjectSpace.RollbackSilent();
 
@@ -59,7 +60,12 @@ namespace XpandTestExecutor.Module.Controllers {
         private void RunTestActionOnExecute(object sender, SimpleActionExecuteEventArgs e) {
             var isSystemMode = IsSystemMode();
             if (_runTestAction.Caption==CancelRun){
-                if (_cancellationTokenSource != null) _cancellationTokenSource.Cancel();
+                if (_cancellationTokenSource != null) {
+                    _cancellationTokenSource.Cancel();
+                    var executionInfo = ObjectSpace.FindObject<ExecutionInfo>(info=>info.Sequence==CurrentSequenceOperator.CurrentSequence);
+                    var users = executionInfo.EasyTestRunningInfos.Select(info => info.WindowsUser.Name).ToArray();
+                    EnviromentEx.LogOffAllUsers(users);
+                }
                 _runTestAction.Caption = Run;
             }
             else if (ReferenceEquals(_selectionModeAction.SelectedItem.Data, TestControllerHelper.Selected)) {

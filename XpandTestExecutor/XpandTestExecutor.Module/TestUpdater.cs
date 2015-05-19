@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -6,6 +7,7 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Serialization;
 using DevExpress.EasyTest.Framework;
+using Xpand.Utils.Helpers;
 using XpandTestExecutor.Module.BusinessObjects;
 
 namespace XpandTestExecutor.Module {

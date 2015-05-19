@@ -126,12 +126,6 @@ namespace XpandTestExecutor.Module.BusinessObjects {
             get { return ((ISupportSequenceObject)EasyTest).Sequence.ToString(CultureInfo.InvariantCulture); }
         }
 
-        public bool IsTimeOut{
-            get{
-                return State==EasyTestState.Running&&DateTime.Now.Subtract(Start).TotalMinutes > EasyTest.Options.DefaultTimeout;
-            }
-        }
-
         public void SetView(bool win, Image view) {
             if (win)
                 WinView = view;
@@ -178,22 +172,26 @@ namespace XpandTestExecutor.Module.BusinessObjects {
             var path = Path.GetDirectoryName(EasyTest.FileName) + "";
             if (State == EasyTestState.Failed) {
                 var logTests = EasyTest.GetFailedLogTests();
-
-                foreach (var platform in new[] { "Win", "Web" }) {
-                    var logTest = logTests.FirstOrDefault(test => test.ApplicationName.Contains("." + platform));
-                    if (logTest != null) {
-                        var fileName = Directory.GetFiles(path, EasyTest.Name + "_*." + platform + "_View.jpeg").FirstOrDefault();
-                        if (fileName != null)
-                            SetView(platform == "Win", Image.FromFile(fileName));
-                        fileName = Directory.GetFiles(path, "eXpressAppFramework_" + platform + ".log").FirstOrDefault();
-                        if (fileName != null)
-                            SetLog(platform == "Win", File.ReadAllText(fileName));
-                        TestsLog = File.ReadAllText(Path.Combine(path, "TestsLog.xml"));
-                    }
+                if (logTests.All(test => test.ApplicationName==null))
+                    TestsLog = File.ReadAllText(Path.Combine(path, "TestsLog.xml"));
+                else {
+                    foreach (var platform in new[] { "Win", "Web" }) {
+                        var logTest = logTests.FirstOrDefault(test => test.ApplicationName.Contains("." + platform));
+                        if (logTest != null) {
+                            var fileName = Directory.GetFiles(path, EasyTest.Name + "_*." + platform + "_View.jpeg").FirstOrDefault();
+                            if (fileName != null)
+                                SetView(platform == "Win", Image.FromFile(fileName));
+                            fileName = Directory.GetFiles(path, "eXpressAppFramework_" + platform + ".log").FirstOrDefault();
+                            if (fileName != null)
+                                SetLog(platform == "Win", File.ReadAllText(fileName));
+                            TestsLog = File.ReadAllText(Path.Combine(path, "TestsLog.xml"));
+                        }
+                    }                    
                 }
             }
 
         }
+
 
         public bool ExecutedFromSystem() {
             return WindowsUser.Name != null;

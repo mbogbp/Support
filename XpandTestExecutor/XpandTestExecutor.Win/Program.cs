@@ -37,6 +37,7 @@ namespace XpandTestExecutor.Win {
                     var windowsIdentity = WindowsIdentity.GetCurrent();
                     Debug.Assert(windowsIdentity != null, "windowsIdentity != null");
                     var finished = false;
+                    winApplication.CreateObjectSpace();
                     TestRunner.Execute(args[0], windowsIdentity.IsSystem,task => finished=true,false);   
                     do {
                         Thread.Sleep(5000);

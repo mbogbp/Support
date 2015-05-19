@@ -101,9 +101,9 @@ namespace XpandTestExecutor.Module.BusinessObjects {
         }
 
         private IEnumerable<EasyTest> GetNeverRunEasyTests() {
-            return EasyTestExecutionInfos.GroupBy(info => info.EasyTest)
-                .Where(infos => infos.Count() == 1 && infos.First().State == EasyTestState.NotStarted)
-                .SelectMany(infos => infos).Select(info => info.EasyTest).Distinct().OrderByDescending(test => test.LastPassedDuration()).ToArray();
+            var execInfos = EasyTestExecutionInfos.GroupBy(info => info.EasyTest)
+                .Where(infos => infos.Count() == 1 && infos.First().State == EasyTestState.NotStarted);
+            return execInfos.SelectMany(infos => infos).Select(info => info.EasyTest).Distinct().OrderByDescending(test => test.LastPassedDuration()).ToArray();
         }
 
         public IEnumerable<WindowsUser> GetUsedUsers(EasyTest easytest) {

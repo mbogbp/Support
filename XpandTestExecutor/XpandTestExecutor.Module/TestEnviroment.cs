@@ -54,7 +54,7 @@ namespace XpandTestExecutor.Module {
         }
 
         public static void Setup(EasyTest[] easyTests) {
-            OptionsProvider.Init(easyTests);
+            OptionsProvider.Init(easyTests.Select(test => test.FileName).ToArray());
             KillProcessAsUser();
             if (!File.Exists(Path.Combine(Path.GetDirectoryName(easyTests.First().FileName)+"","processasuser.exe"))) {
                 var fileName = Path.GetFullPath(@"..\CopyEasyTestReqs.bat");

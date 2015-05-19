@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using DevExpress.EasyTest.Framework;
@@ -101,7 +100,7 @@ namespace XpandTestExecutor.Module.BusinessObjects {
 
         [Browsable(false)]
         public Options Options{
-            get { return OptionsProvider.Instance[Oid]; }
+            get { return OptionsProvider.Instance[FileName]; }
         }
 
         public void CreateExecutionInfo(bool useCustomPort, ExecutionInfo executionInfo, WindowsUser windowsUser = null) {
