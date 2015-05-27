@@ -8,7 +8,7 @@ using CommandLine;
 
 namespace FixReferences {
     class Program {
-        static readonly HashSet<string> _excludedDirs = new HashSet<string> { "DXBuildGenerator", "Xpand.DesignExperience" };
+        static readonly HashSet<string> _excludedDirs = new HashSet<string> { "DXBuildGenerator", "Xpand.DesignExperience", "Report designer script editor" };
         private static Options _options;
 
         static void Main(string[] args) {
