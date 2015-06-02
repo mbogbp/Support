@@ -112,8 +112,6 @@
                    Demos\Modules\Dashboard\DashboardTester.Web\DashboardTester.Web.csproj;
                    Demos\Modules\Email\EmailTester.Win\EmailTester.Win.csproj;
                    Demos\Modules\Email\EmailTester.Web\EmailTester.Web.csproj;
-                   Demos\Modules\ExceptionHanding\ExceptionHandingTester.Win\ExceptionHandingTester.Win.csproj;
-                   Demos\Modules\ExceptionHanding\ExceptionHandingTester.Web\ExceptionHandingTester.Web.csproj;
                    Demos\Modules\FileAttachment\FileAttachmentTester.Win\FileAttachmentTester.Win.csproj;
                    Demos\Modules\FileAttachment\FileAttachmentTester.Web\FileAttachmentTester.Web.csproj;
                    Demos\Modules\FilterDataStore\FilterDataStoreTester.Win\FilterDataStoreTester.Win.csproj;
