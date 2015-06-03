@@ -95,6 +95,10 @@
 					Xpand\Xpand.NH\Xpand.ExpressApp.NH.BaseImpl\Xpand.ExpressApp.NH.BaseImpl.csproj;
 					Xpand\Xpand.NH\NHibernateService\Xpand.ExpressApp.NH.Service.csproj;
 					Xpand\Xpand.NH\Xpand.NH.sln"/>
+	<NHProjects Include="
+					Xpand\Xpand.EF\Xpand.EF\Xpand.EF.csproj;
+					Xpand\Xpand.EF\Xpand.Persistent.Base.EF\Xpand.Persistent.Base.EF.csproj;
+					Xpand\Xpand.EF\Xpand.Persistent.BaseImpl.EF\Xpand.Persistent.BaseImpl.EF.csproj;"/>
     <DemoSolutions Include="
 					Demos\EFDemoCodeFirst\EFDemoCodeFirst.sln;
 					Demos\FeatureCenter\FeatureCenterVS2010.sln;
